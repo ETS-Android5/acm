@@ -2,6 +2,8 @@ package org.literacybridge.acm.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
@@ -11,11 +13,7 @@ import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.LookAndFeel;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+import javax.swing.*;
 
 import org.jdesktop.swingx.JXFrame;
 import org.kohsuke.args4j.CmdLineException;
@@ -126,6 +124,20 @@ public class Application extends JXFrame {
     add(toolbarView, BorderLayout.PAGE_START);
     add(resourceView, BorderLayout.CENTER);
 
+
+
+      JMenuBar menuBar = new JMenuBar();
+      JMenu file = new JMenu("File");
+      JMenuItem item = new JMenuItem("Woah");
+      item.addActionListener(e -> {
+
+      });
+      file.add(item);
+      menuBar.add(file);
+      setJMenuBar(menuBar);
+
+
+
     statusBar = new ACMStatusBar();
     setStatusBar(statusBar);
     taskManager = new BackgroundTaskManager(statusBar);
@@ -174,7 +186,8 @@ public class Application extends JXFrame {
 
   public static void main(String[] args) throws Exception {
     // We can use this to put the menu in the right place on MacOS. When we have a menu.
-    //System.setProperty("apple.laf.useScreenMenuBar", "true");
+    System.setProperty("apple.laf.useScreenMenuBar", "true");
+    System.setProperty("com.apple.mrj.application.apple.menu.about.name", "ACM");
     // This doesn't work because somehow the property has already been read by this point.
     // Something to do with the AppKit thread starting earlier than this.
     //System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS");
@@ -194,16 +207,11 @@ public class Application extends JXFrame {
   }
 
   public static void startUp(CommandLineParams params) throws Exception {
-    // TODO: This method is mostly about setting up the GUI, with a little bit
-    // of
-    // reading configuration and opening the database. That's fine, but the
-    // method
-    // is called by non-GUI utilities, just for the side effect of getting the
-    // database
-    // open. After Michael checks in his major database migration, we should
-    // factor out
-    // the configuration and database code, so the non-GUI utilities don't call
-    // this.
+    // TODO: This method is mostly about setting up the GUI, with a little bit of
+    // reading configuration and opening the database. That's fine, but the method
+    // is called by non-GUI utilities, just for the side effect of getting the database
+    // open. After Michael checks in his major database migration, we should factor out
+    // the configuration and database code, so the non-GUI utilities don't call this.
     boolean showUI = !params.disableUI;
     SplashScreen splash = null;
 
@@ -214,8 +222,7 @@ public class Application extends JXFrame {
       // set look & feel
 
       // Not sure why, but making this call before setting the seaglass look and
-      // feel
-      // prevents an UnsatisfiedLinkError to be thrown
+      // feel prevents an UnsatisfiedLinkError to be thrown
       final LookAndFeel defaultLAF = UIManager.getLookAndFeel();
       try {
         UIManager.setLookAndFeel("com.seaglasslookandfeel.SeaGlassLookAndFeel");
@@ -269,7 +276,7 @@ public class Application extends JXFrame {
       application.toFront();
       splash.close();
 
-      // Prompt the user to update to Java 8.
+        // Prompt the user to update to Java 8.
       if (JAVA_VERSION < 1.8) {
         String message = "This computer needs to be updated to Java 8." +
                 "\n\nPlease contact ICT staff to arrange for the update." +
