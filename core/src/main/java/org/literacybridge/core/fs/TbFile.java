@@ -123,9 +123,11 @@ public abstract class TbFile {
         if (!exists()) return numDeleted;
         if (isDirectory() && hasFlag(flags, Flags.recursive, Flags.contentRecursive)) {
             String [] children = list();
-            for (String child : children) {
-                TbFile f = open(child);
-                numDeleted += f.delete(Flags.recursive);
+            if (children != null) {
+                for (String child : children) {
+                    TbFile f = open(child);
+                    numDeleted += f.delete(Flags.recursive);
+                }
             }
             if (hasFlag(flags, Flags.contentRecursive)) return numDeleted;
         }
