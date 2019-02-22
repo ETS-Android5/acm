@@ -81,7 +81,7 @@ function updateLibs() {
 # Update the acm.jar file wherever it exists in Dropbox. By now, really only 1 place.
 function updateJar() {
     # Update the acm.jar. 
-    for f in $(find ${dropbox} -iname acm.jar); do
+    for f in $(find ${dropbox} -not -path "*/ACM-beta/*" -iname acm.jar); do
         if ! cmp -s acm.jar "$f" ; then
             updated=true
             cpcmd=(cp -v "acm.jar" "$f")
@@ -159,7 +159,7 @@ function readArguments() {
         case "${opt}" in
         b) beta=true;;
         m) nomarker=true;;
-	    n) dryrun=true;;
+        n) dryrun=true;;
         q) quiet=true;;
         u) updated=true;;
         h) usage;;
@@ -169,10 +169,10 @@ function readArguments() {
    done
    
     # Enumerating arguments, collect into an array accessible outside the function
-	remainingArgs=()
+    remainingArgs=()
     for arg
     do
-	    remainingArgs+=("$arg")
+        remainingArgs+=("$arg")
     done
     # When the function returns, the following sets the unprocessed arguments back into $1 .. $9
     # set -- "${remainingArgs[@]}"
