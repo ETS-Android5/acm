@@ -5,6 +5,8 @@ import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.literacybridge.acm.Constants;
+import org.literacybridge.acm.cloud.Authenticator;
+import org.literacybridge.acm.cloud.SigninDialog;
 import org.literacybridge.acm.config.ACMConfiguration;
 import org.literacybridge.acm.gui.Application;
 import org.literacybridge.acm.gui.util.UIUtils;
@@ -47,6 +49,7 @@ import java.io.PrintWriter;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -267,6 +270,8 @@ public class TBLoader extends JFrame {
             this.allowForceSrn |= Boolean.parseBoolean(valStr);
         }
 
+        authenticate();
+
         setDeviceIdAndPaths();
 
         // Initialized java logging, as well as operational logging.
@@ -298,6 +303,18 @@ public class TBLoader extends JFrame {
 
         startupTimer += System.currentTimeMillis();
         System.out.printf("Startup in %d ms.\n", startupTimer);
+    }
+
+    private void authenticate() {
+        Authenticator authInstance = Authenticator.getInstance();
+        SigninDialog.showDialog(this);
+        if (!authInstance.isAuthenticated()) {
+            JOptionPane.showMessageDialog(this, "Authentication is required to use the TB-Loader.",
+                "Authentication Failure", JOptionPane.ERROR_MESSAGE);
+            System.exit(13);
+        }
+        Collection<String> projects = authInstance.getProjects();
+        System.out.println(projects);
     }
 
     /**

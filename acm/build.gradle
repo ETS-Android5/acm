@@ -124,16 +124,19 @@ buildscript {
     }
 }
 apply plugin: "io.spring.dependency-management"
-dependencyManagement {
-    imports {
-        mavenBom 'com.amazonaws:aws-java-sdk-bom:1.10.47'
-    }
-}
+//dependencyManagement {
+
+//    imports {
+//        mavenBom 'com.amazonaws:aws-java-sdk-bom:1.10.47'
+//    }
+//}
 // End code to allow dynamically including the most up-to-date AWS libs
 
 dependencies {
     compile project(':core')
 
+//    implementation platform('com.amazonaws:aws-java-sdk-bom:1.11.228')
+    
     compile 'org.apache.lucene:lucene-core:5.5.0'
     compile 'org.apache.lucene:lucene-facet:5.5.0'
     compile 'org.apache.lucene:lucene-analyzers-common:5.5.0'
@@ -156,6 +159,12 @@ dependencies {
     compile 'net.sf.opencsv:opencsv:2.3'
     // https://mvnrepository.com/artifact/me.xdrop/fuzzywuzzy
     compile group: 'me.xdrop', name: 'fuzzywuzzy', version: '1.1.6'
+
+    implementation 'com.amazonaws:aws-java-sdk-core:1.11.228'
+    implementation 'com.amazonaws:aws-java-sdk-cognitoidp:1.11.228'
+    implementation 'com.amazonaws:aws-java-sdk-cognitoidentity:1.11.228'
+    implementation 'com.amazonaws:aws-java-sdk-s3:1.11.228'
+
 
     compile files(fileTree('3rdparty').include('*.jar'))
 
