@@ -5,7 +5,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -87,10 +89,7 @@ public class HttpUtility {
     public HttpURLConnection sendGetRequest(String requestURL, Map<String, String> headers)
         throws IOException
     {
-        Map<String, String> allHeaders = new LinkedHashMap<>(headers);
-        allHeaders.put("Accept", "application/json");
-
-        return sendRequest("GET", requestURL, null, allHeaders);
+        return sendRequest("GET", requestURL, null, headers);
     }
 
     private InputStream getInputStream() throws IOException {

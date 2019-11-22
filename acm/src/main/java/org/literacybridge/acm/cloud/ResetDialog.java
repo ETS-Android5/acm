@@ -2,6 +2,7 @@ package org.literacybridge.acm.cloud;
 
 import org.literacybridge.acm.gui.Assistant.PlaceholderTextField;
 import org.literacybridge.acm.gui.Assistant.RoundedLineBorder;
+import org.literacybridge.acm.gui.util.UIUtils;
 import org.literacybridge.acm.utils.SwingUtils;
 
 import javax.swing.*;
@@ -20,6 +21,8 @@ import java.awt.Window;
 import java.awt.event.ActionEvent;
 
 import static org.literacybridge.acm.gui.Assistant.AssistantPage.getGBC;
+import static org.literacybridge.acm.gui.util.UIUtils.UiOptions.SHIFT_DOWN;
+import static org.literacybridge.acm.gui.util.UIUtils.UiOptions.TOP_THIRD;
 
 /**
  * A dialog class to assist in resetting a cognito based password. User is prompted to enter
@@ -66,7 +69,7 @@ public class ResetDialog extends JDialog {
         // Password
         gbc.insets.bottom = 5; // tighter bottom spacing.
         passwordField1 = new PlaceholderTextField();
-        passwordField1.setPlaceholder("Password");
+        passwordField1.setPlaceholder("New Password");
         passwordField1.setMaskChar('*');
         passwordField1.getDocument().addDocumentListener(passwordDocListener);
         dialogPanel.add(passwordField1, gbc);
@@ -125,6 +128,8 @@ public class ResetDialog extends JDialog {
         SwingUtils.addEscapeListener(this);
         setMinimumSize(new Dimension(450, 280));
 
+        // Center horizontally and in the top 2/3 of screen.
+        UIUtils.centerWindow(this, TOP_THIRD, SHIFT_DOWN);
     }
 
     private void onCancel(ActionEvent actionEvent) {

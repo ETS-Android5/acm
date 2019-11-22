@@ -3,12 +3,15 @@ package org.literacybridge.acm.cloud;
 import org.apache.commons.lang.StringUtils;
 import org.literacybridge.acm.gui.Assistant.PlaceholderTextField;
 import org.literacybridge.acm.gui.Assistant.RoundedLineBorder;
+import org.literacybridge.acm.gui.util.UIUtils;
 import org.literacybridge.acm.utils.SwingUtils;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -16,8 +19,13 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
 import static org.literacybridge.acm.gui.Assistant.AssistantPage.getGBC;
+import static org.literacybridge.acm.gui.util.UIUtils.UiOptions.TOP_THIRD;
 
 public final class SigninDialog extends JDialog {
 
@@ -26,8 +34,9 @@ public final class SigninDialog extends JDialog {
     private final JCheckBox rememberMe;
     private final PlaceholderTextField usernameField;
     private JLabel authFailureMessage;
+    private final JButton signIn;
 
-    private SigninDialog(Window owner, String prompt) {
+    SigninDialog(Window owner, String prompt) {
         super(owner, String.format("%s Sign In", prompt), ModalityType.DOCUMENT_MODAL);
 
         // Set an empty border on the panel, to give some blank space around the content.
@@ -52,12 +61,16 @@ public final class SigninDialog extends JDialog {
         // User name
         usernameField = new PlaceholderTextField();
         usernameField.setPlaceholder("User Name or Email Address");
+        usernameField.addKeyListener(textKeyListener);
+        usernameField.getDocument().addDocumentListener(textDocumentListener);
         dialogPanel.add(usernameField, gbc);
 
         // Password
         passwordField = new PlaceholderTextField();
         passwordField.setPlaceholder("Password");
         passwordField.setMaskChar('*');
+        passwordField.addKeyListener(textKeyListener);
+        passwordField.getDocument().addDocumentListener(textDocumentListener);
         dialogPanel.add(passwordField, gbc);
 
         // Option checkboxes, and forgot password link.
@@ -87,8 +100,9 @@ public final class SigninDialog extends JDialog {
 
         // Sign In button and Sign Up link.
         hBox = Box.createHorizontalBox();
-        JButton signIn = new JButton("Sign In");
-        signIn.addActionListener(this::onOk);
+        signIn = new JButton("Sign In");
+        signIn.addActionListener(this::onSignin);
+        signIn.setEnabled(false);
         hBox.add(signIn);
         hBox.add(Box.createHorizontalGlue());          
         ActionLabel signUp = new ActionLabel("No user id? Click here!");
@@ -101,8 +115,39 @@ public final class SigninDialog extends JDialog {
         dialogPanel.add(hBox, gbc);
 
         SwingUtils.addEscapeListener(this);
-        setMinimumSize(new Dimension(450, 250));
 
+        ActionListener enterListener = (e) -> {
+            System.out.println("Enter");
+            if (signIn.isEnabled())
+                onSignin(null);
+        };
+
+        getRootPane().registerKeyboardAction(enterListener,
+            KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0),
+            JComponent.WHEN_IN_FOCUSED_WINDOW);
+        getRootPane().setDefaultButton(null);
+
+        // Center horizontally and in the top 2/3 of screen.
+        setMinimumSize(new Dimension(450, 250));
+        UIUtils.centerWindow(this, TOP_THIRD);
+        setAlwaysOnTop(true);
+    }
+
+    void setSavedCredentials(String user, String password) {
+        rememberMe.setSelected(true);
+        showPassword.setSelected(false);
+        showPassword.setEnabled(false);
+        usernameField.setText(user);
+        passwordField.setText(password);
+    }
+
+    void doSignin() {
+        String user = usernameField.getText();
+        String password = passwordField.getText();
+        if (StringUtils.isNotEmpty(user) && StringUtils.isNotEmpty(password)) {
+            onSignin(null);
+        }
+        setVisible(true);
     }
 
     private void setMessage(String message) {
@@ -125,7 +170,8 @@ public final class SigninDialog extends JDialog {
             return;
         }
         setMessage(null);
-//        Authenticator.getInstance().resetPassword(usernameField.getText());
+        // Comment out next line to NOT reset the password, to test the GUI aspect of the reset dialog.
+        Authenticator.getInstance().resetPassword(usernameField.getText());
         ResetDialog.showDialog(this, usernameField.getText());
     }
 
@@ -133,8 +179,16 @@ public final class SigninDialog extends JDialog {
 
     }
 
+    boolean isRememberMeSelected() {
+        return rememberMe.isSelected();
+    }
+
     private void onShowPassword(ActionEvent actionEvent) {
         passwordField.setMaskChar(showPassword.isSelected() ? (char)0 : '*');
+    }
+
+    String getPasswordText() {
+        return passwordField.getText();
     }
 
     /**
@@ -142,11 +196,17 @@ public final class SigninDialog extends JDialog {
      *
      * @param e is unused.
      */
-    private void onOk(ActionEvent e) {
+    private void onSignin(ActionEvent e) {
         Authenticator authenticator = Authenticator.getInstance();
-        setMessage(null);
-        authenticator.authenticate(usernameField.getText(), passwordField.getText());
 
+        UIUtils.runWithWaitSpinner(this,
+            () -> authenticator.authenticate(usernameField.getText(), passwordField.getText()),
+            this::onSigninReturned,
+            TOP_THIRD);
+    }
+
+    private void onSigninReturned() {
+        Authenticator authenticator = Authenticator.getInstance();
         if (!authenticator.isAuthenticated()) {
             setMessage(authenticator.getAuthMessage());
         } else {
@@ -154,14 +214,42 @@ public final class SigninDialog extends JDialog {
         }
     }
 
-    public static boolean showDialog(Window parent, String prompt) {
-        SigninDialog dialog = new SigninDialog(parent, prompt);
-        dialog.setVisible(true);
-        return Authenticator.getInstance().isAuthenticated();
+    private void enableControls() {
+        signIn.setEnabled(usernameField.getText().length() > 0 && passwordField.getText().length() > 0);
+        if (passwordField.getText().length() == 0) showPassword.setEnabled(true);
     }
 
-    public static boolean showDialog(Window parent) {
-        return showDialog(parent, "Amplio");
-    }
+    @SuppressWarnings("FieldCanBeLocal")
+    private KeyListener textKeyListener = new KeyAdapter() {
+        @Override
+        public void keyTyped(KeyEvent e) {
+            super.keyTyped(e);
+            enableControls();
+        }
+    };
+
+    /**
+     * We don't enable "showPassword" for saved passwords, so when a saved password is used,
+     * the control is disabled. If the old password is deleted, we re-enable the control.
+     *
+     * Also used to enable the sign-in button if a user id or password is pasted into the
+     * corresponding field (because we're not listening to that key, we'd otherwise miss the
+     * presence of the user id or password).
+     */
+    @SuppressWarnings("FieldCanBeLocal")
+    private DocumentListener textDocumentListener = new DocumentListener() {
+        @Override
+        public void insertUpdate(DocumentEvent e) {
+            enableControls();
+        }
+        @Override
+        public void removeUpdate(DocumentEvent e) {
+            enableControls();
+        }
+        @Override
+        public void changedUpdate(DocumentEvent e) {
+            enableControls();
+        }
+    };
 
 }

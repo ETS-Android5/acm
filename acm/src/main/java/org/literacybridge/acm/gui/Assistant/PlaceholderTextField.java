@@ -45,6 +45,18 @@ public class PlaceholderTextField extends JTextField {
     }
 
     @Override
+    public void cut() {
+        if (maskChar == 0)
+            super.cut();
+    }
+
+    @Override
+    public void copy() {
+        if (maskChar == 0)
+            super.copy();
+    }
+
+    @Override
     protected Document createDefaultModel() {
         // Our Content object provides masked characters when painting.
         return new PlainDocument(new MaskedContent());

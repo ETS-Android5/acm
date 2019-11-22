@@ -135,8 +135,7 @@ apply plugin: "io.spring.dependency-management"
 dependencies {
     compile project(':core')
 
-//    implementation platform('com.amazonaws:aws-java-sdk-bom:1.11.228')
-    
+
     compile 'org.apache.lucene:lucene-core:5.5.0'
     compile 'org.apache.lucene:lucene-facet:5.5.0'
     compile 'org.apache.lucene:lucene-analyzers-common:5.5.0'
@@ -160,10 +159,12 @@ dependencies {
     // https://mvnrepository.com/artifact/me.xdrop/fuzzywuzzy
     compile group: 'me.xdrop', name: 'fuzzywuzzy', version: '1.1.6'
 
-    implementation 'com.amazonaws:aws-java-sdk-core:1.11.228'
-    implementation 'com.amazonaws:aws-java-sdk-cognitoidp:1.11.228'
-    implementation 'com.amazonaws:aws-java-sdk-cognitoidentity:1.11.228'
-    implementation 'com.amazonaws:aws-java-sdk-s3:1.11.228'
+//    implementation platform('com.amazonaws:aws-java-sdk-bom:1.11.228')
+    // was "implementation 'com.amazonaws:..."
+    compile 'com.amazonaws:aws-java-sdk-core:1.11.228'
+    compile 'com.amazonaws:aws-java-sdk-cognitoidp:1.11.228'
+    compile 'com.amazonaws:aws-java-sdk-cognitoidentity:1.11.228'
+    compile 'com.amazonaws:aws-java-sdk-s3:1.11.228'
 
 
     compile files(fileTree('3rdparty').include('*.jar'))

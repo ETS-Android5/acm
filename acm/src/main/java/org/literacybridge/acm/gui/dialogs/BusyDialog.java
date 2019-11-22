@@ -12,7 +12,7 @@ public class BusyDialog extends JDialog {
     private JLabel label;
     private boolean stopRequested = false;
 
-    public BusyDialog(String text, JFrame parent) {
+    public BusyDialog(String text, Window parent) {
         this(text, parent, false);
     }
 
@@ -22,8 +22,8 @@ public class BusyDialog extends JDialog {
      * @param text   The dialog description.
      * @param parent Parent, for positioning.
      */
-    public BusyDialog(String text, JFrame parent, boolean addStopButton) {
-        super(parent, text, true);
+    public BusyDialog(String text, Window parent, boolean addStopButton) {
+        super(parent, text, ModalityType.DOCUMENT_MODAL);
         this.setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
 
         int height = 100;

@@ -300,7 +300,6 @@ public class ACMConfiguration {
         File propsFile = newDbConfiguration.getConfigurationPropertiesFile();
         try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(propsFile))) {
             newDbProps.load(in);
-            newDbProps.setProperty(Constants.USE_AWS_LOCKING, Boolean.TRUE.toString());
             try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(propsFile))) {
                 newDbProps.store(out, null);
             }

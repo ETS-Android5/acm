@@ -68,6 +68,10 @@ public class AuthenticationHelper {
         public String getMessage() {
             return message;
         }
+
+        public Exception getAuthException() {
+            return authException;
+        }
     }
 
 
