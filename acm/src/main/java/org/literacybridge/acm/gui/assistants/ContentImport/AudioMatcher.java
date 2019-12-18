@@ -1,7 +1,11 @@
 package org.literacybridge.acm.gui.assistants.ContentImport;
 
+import me.xdrop.fuzzywuzzy.FuzzySearch;
 import org.literacybridge.acm.gui.assistants.Matcher.ImportableFile;
 import org.literacybridge.acm.gui.assistants.Matcher.Matcher;
+
+import java.util.List;
+import java.util.function.BiFunction;
 
 class AudioMatcher extends Matcher<AudioTarget, ImportableFile, AudioMatchable> {
     /**
@@ -45,5 +49,20 @@ class AudioMatcher extends Matcher<AudioTarget, ImportableFile, AudioMatchable> 
                 return s1.compareToIgnoreCase(s2);
             }
         });
+    }
+
+    @Override
+    protected int scoreMatch(AudioMatchable l, AudioMatchable r, boolean tokens) {
+        List<String> leftList = l.getLeft().getTitles();
+        String right = r.getRight().toString();
+
+        BiFunction<String,String,Integer> fn =
+            tokens ? FuzzySearch::tokenSortRatio
+                   : FuzzySearch::ratio;
+
+        int score = 0;
+        for (String left : leftList)
+            score = Math.max(score, fn.apply(left, right));
+        return score;
     }
 }

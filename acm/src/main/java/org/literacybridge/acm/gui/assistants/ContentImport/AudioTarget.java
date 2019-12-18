@@ -5,6 +5,9 @@ import org.literacybridge.acm.store.AudioItem;
 import org.literacybridge.acm.store.Playlist;
 import org.literacybridge.core.spec.ContentSpec;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public abstract class AudioTarget extends Target {
     // The ACM Playlist into which the item will be imported.
     protected Playlist playlist;
@@ -16,6 +19,12 @@ public abstract class AudioTarget extends Target {
 
     // Name of the item in the ACM db.
     public abstract String getTitle();
+    public List<String> getTitles() {
+        List<String> result = new ArrayList<>();
+        result.add(getTitle());
+        return result;
+    }
+
     // To show to the user when telling them about the item.
     public abstract String getPromptString();
 
