@@ -6,6 +6,8 @@ import com.amazonaws.services.cognitoidentity.model.Credentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 import org.apache.commons.lang3.tuple.Triple;
 import org.json.simple.JSONObject;
@@ -243,6 +245,19 @@ public class Authenticator {
             return false;
         }
         return true;
+    }
+
+    public boolean uploadS3Object(String bucket, String key, File inputFile) {
+        boolean result = false;
+        try {
+            PutObjectRequest request = new PutObjectRequest(bucket, key, inputFile);
+            PutObjectResult putResult = s3Client.putObject(request);
+            result = true;
+        } catch (Exception ex) {
+            // Ignore and return false
+            ex.printStackTrace();
+        }
+        return result;
     }
 
     /**

@@ -43,7 +43,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -64,13 +67,12 @@ import static java.lang.Math.max;
 import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 import static org.literacybridge.acm.Constants.TBLoadersLogDir;
 import static org.literacybridge.acm.Constants.TbCollectionWorkDir;
-import static org.literacybridge.acm.Constants.uploadQueue;
 import static org.literacybridge.acm.gui.util.UIUtils.UiOptions.TOP_THIRD;
 import static org.literacybridge.core.tbloader.TBLoaderConstants.ISO8601;
 import static org.literacybridge.core.tbloader.TBLoaderUtils.isSerialNumberFormatGood;
 import static org.literacybridge.core.tbloader.TBLoaderUtils.isSerialNumberFormatGood2;
 
-@SuppressWarnings({ "serial", "ResultOfMethodCallIgnored" })
+@SuppressWarnings({ "serial", "ResultOfMethodCallIgnored", "ConstantConditions" })
 public class TBLoader extends JFrame {
     private static final Logger LOG = Logger.getLogger(TBLoader.class.getName());
 
@@ -88,6 +90,8 @@ public class TBLoader extends JFrame {
     // Global swing components.
     private JLabel greeting;
     private Box greetingBox;
+
+    private JLabel uploadStatus;
 
     private Box deviceBox;
     private JLabel deviceLabel;
@@ -158,7 +162,10 @@ public class TBLoader extends JFrame {
     private String userEmail;
     private String userName;
     private File collectionWorkDir;
+    private File uploadQueueDeviceDir;
     private File uploadQueueDir;
+    private File uploadQueueCDDir;
+    private TbFile temporaryDir;
 
     private static class TbLoaderArgs {
         @Option(name = "--oldtbs", aliases = "-o", usage = "Target OLD Talking Books.")
@@ -347,35 +354,145 @@ public class TBLoader extends JFrame {
 
             File appHome = ACMConfiguration.getInstance().getApplicationHomeDirectory();
             collectionWorkDir = new File(appHome, TbCollectionWorkDir);
-            uploadQueueDir = new File(appHome,
-                uploadQueue + File.separator + "collected-data" + File.separator + "tbcd"
-                    + deviceIdHex);
+            uploadQueueDir = new File(appHome, Constants.uploadQueue);
+            uploadQueueCDDir = new File(uploadQueueDir, "collected-data");
+            uploadQueueDeviceDir = new File(uploadQueueCDDir,"tbcd" + deviceIdHex);
 
             logsDir = new File(ACMConfiguration.getInstance().getApplicationHomeDirectory(),
                 Constants.TBLoadersHomeDir + File.separator + TBLoadersLogDir);
             logsDir.mkdirs();
+
+            temporaryDir = new FsFile(Files.createTempDirectory("tbloader-tmp").toFile());
         } catch (Exception e) {
             LOG.log(Level.SEVERE, "Exception while setting DeviceId and paths", e);
             throw e;
         }
     }
 
+    /**
+     * Allocate a new TBLoaderConfig, with a new timestamp for the collected data.
+     * @return the new TBLoaderConfig.
+     * @throws IOException if we're unable to create the temporary directory.
+     */
     private TBLoaderConfig getTbLoaderConfig() throws IOException {
         String collectionTimestamp = ISO8601.format(new Date());
         File collectedDataDirectory = new File(collectionWorkDir, collectionTimestamp);
         TbFile collectedDataTbFile = new FsFile(collectedDataDirectory);
 
-        TbFile tempDir = new FsFile(Files.createTempDirectory("tbloader-tmp").toFile());
-
-        TBLoaderConfig tbLoaderConfig = new TBLoaderConfig.Builder().withTbLoaderId(deviceIdHex)
+        return new TBLoaderConfig.Builder().withTbLoaderId(deviceIdHex)
             .withCollectedDataDirectory(collectedDataTbFile)
-            .withTempDirectory(tempDir)
+            .withTempDirectory(temporaryDir)
             .withWindowsUtilsDirectory(softwareDir)
             .withUserName(userName)
             .build();
-        return tbLoaderConfig;
     }
 
+    /**
+     * Object to hold upload status: number of files, number of bytes.
+     */
+    static class UploadStatus {
+        List<File> queued;
+        int nFiles;
+        long nBytes;
+
+        public UploadStatus(List<File> files) {
+            nFiles = files.size();
+            nBytes = files.stream().map(File::length).reduce(0L, Long::sum);
+        }
+    }
+
+    /**
+     * Helper for recursively getting the files in a directory.
+     * @param file a file to be added, or a directory to be scanned recursively.
+     * @param list of files to be appended to.
+     */
+    private void addFiles(File file, List<File> list, boolean removeEmpty) {
+        if (!file.exists()) return;
+        if (file.isDirectory()) {
+            File[] dirList = file.listFiles();
+            if (dirList.length == 0 && removeEmpty) {
+                file.delete();
+            } else {
+                for (File f : dirList)
+                    addFiles(f, list, removeEmpty);
+            }
+        } else {
+            list.add(file);
+        }
+    }
+
+    /**
+     * Scans the upload queue for anything waiting to be uploaded.
+     * @return a list of files in the upload queue.
+     */
+    private List<File> getUploadQueue() {
+        List<File> result = new ArrayList<>();
+        addFiles(uploadQueueCDDir, result, true);
+        result.sort(Comparator.comparingLong(File::length));
+        return result;
+    }
+
+    /**
+     * Update the status line for pending uploads. If no pending uploads, hides the status
+     * line.
+     * @param progress An UploadStatus object with the current status.
+     */
+    private void updateUploadStatus(UploadStatus progress) {
+        if (progress.nFiles == 0) {
+            uploadStatus.setVisible(false);
+        } else {
+            String text = String.format("%s in %d files waiting to be uploaded.",
+                TBLoaderUtils.getBytesString(progress.nBytes),
+                progress.nFiles);
+            uploadStatus.setText(text);
+            uploadStatus.setVisible(true);
+        }
+    }
+
+    /**
+     * Helper class to upload stats and user feedback to S3.
+     */
+    class UploadWorker extends SwingWorker<UploadStatus, UploadStatus> {
+        final Path uploadQueuePath = Paths.get(uploadQueueDir.getAbsolutePath());
+
+        @Override
+        protected UploadStatus doInBackground() throws Exception {
+            final String bucket = "acm-stats";
+            final Authenticator authInstance = Authenticator.getInstance();
+            List<File> queue = getUploadQueue();
+            while (!isCancelled()) {
+                if (queue.size() == 0) {
+                    queue = getUploadQueue();
+                }
+                publish(new UploadStatus(queue));
+                if (queue.size() > 0) {
+                    File next = queue.remove(0);
+                    Path keyPath = Paths.get(next.getAbsolutePath());
+                    Path relativePath = uploadQueuePath.relativize(keyPath);
+                    String key = relativePath.toString();
+                    if (authInstance.uploadS3Object(bucket, key, next)) {
+                        next.delete();
+                    }
+                    Thread.sleep(2000);
+                } else {
+                    Thread.sleep(10000);
+                }
+            }
+            return null;
+        }
+
+        protected void process(List<UploadStatus> list) {
+            UploadStatus progress = list.get(list.size() - 1);
+            updateUploadStatus(progress);
+        }
+    }
+    UploadWorker uploadWorker;
+
+    /**
+     * Look for directories in collectionWorkDir. For any that are found, zip their contents into
+     * a single file, and move it to the upload queue. Then, if the upload worker has not been
+     * started, start it.
+     */
     private void zipAndUpload() {
         File[] uploadables = collectionWorkDir.listFiles();
         if (uploadables != null) {
@@ -385,9 +502,15 @@ public class TBLoader extends JFrame {
                         File zipFile = new File(collectionWorkDir, uploadable.getName() + ".zip");
                         ZipUnzip.zip(uploadable, zipFile, true);
                         FileUtils.deleteDirectory(uploadable);
-                        FileUtils.moveFileToDirectory(zipFile, uploadQueueDir, true);
+                        FileUtils.moveFileToDirectory(zipFile, uploadQueueDeviceDir, true);
                     } else {
-                        FileUtils.moveFileToDirectory(uploadable, uploadQueueDir, true);
+                        FileUtils.moveFileToDirectory(uploadable, uploadQueueDeviceDir, true);
+                    }
+                    if (uploadWorker == null && testDeployment.isSelected()) {
+                        uploadWorker = new UploadWorker();
+                        uploadWorker.execute();
+                    } else {
+                        updateUploadStatus(new UploadStatus(getUploadQueue()));
                     }
                 } catch (IOException e) {
                     // This really shouldn't happen. If it does, then what?
@@ -639,6 +762,12 @@ public class TBLoader extends JFrame {
         c.fill = HORIZONTAL;
         panel.add(greetingBox, c);
 
+        // Upload status.
+        c = gbc(0, y++);
+        c.gridwidth = 3;
+        c.fill = HORIZONTAL;
+        panel.add(uploadStatus, c);
+
         // TB Drive letter / volume label.
         // Greeting.
         c = gbc(0, y++);
@@ -770,6 +899,9 @@ public class TBLoader extends JFrame {
         JButton signoutButton = new JButton("Sign Out");
         greetingBox.add(signoutButton);
         signoutButton.addActionListener((e)->{Authenticator.getInstance().doSignoutAndForgetUser();});
+
+        uploadStatus = new JLabel();
+        uploadStatus.setVisible(false);
 
         // "Use with NEW TBs only" / "Use with OLD TBs only"
         // Options
