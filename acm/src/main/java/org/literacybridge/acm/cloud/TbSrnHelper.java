@@ -2,6 +2,8 @@ package org.literacybridge.acm.cloud;
 
 import org.json.simple.JSONObject;
 import org.literacybridge.acm.config.ACMConfiguration;
+import org.literacybridge.core.tbloader.TBLoaderConstants;
+import org.literacybridge.core.tbloader.TbSrnAllocationInfo;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,6 +16,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.literacybridge.core.tbloader.TbSrnAllocationInfo.*;
+
 public class TbSrnHelper {
     private static final String TBL_INFO_NAME = "tbsrnstore.info";
     private static final File tblInfoFile = new File(ACMConfiguration.getInstance()
@@ -23,177 +27,16 @@ public class TbSrnHelper {
 
     private static final int BLOCK_SIZE = 4;
 
-    private static final String ID_NAME = "tbloaderid";
-    private static final String HEXID_NAME = "tbloaderidhex";
-    private static final String NEXTSRN_NAME = "nextsrn";
-    private static final String PRIMARY_BEGIN_NAME = "primarybegin";
-    private static final String PRIMARY_END_NAME = "primaryend";
-    private static final String BACKUP_BEGIN_NAME = "backupbegin";
-    private static final String BACKUP_END_NAME = "backupend";
-
-    public static class TbSrnInfo {
-        int tbloaderid = -1;
-        String tbloaderidHex = null;
-        int nextSrn;
-        int primaryBegin;
-        int primaryEnd;
-        int backupBegin;
-        int backupEnd;
-
-        TbSrnInfo(int tbloaderid,
-            String tbloaderidHex,
-            int nextSrn,
-            int primaryBegin,
-            int primaryEnd,
-            int backupBegin,
-            int backupEnd)
-        {
-            this.tbloaderid = tbloaderid;
-            this.tbloaderidHex = tbloaderidHex;
-            this.nextSrn = nextSrn;
-            this.primaryBegin = primaryBegin;
-            this.primaryEnd = primaryEnd;
-            this.backupBegin = backupBegin;
-            this.backupEnd = backupEnd;
-        }
-
-        /**
-         * Constructor from another TbSrnInfo object.
-         * @param other the other TbSrnInfo object.
-         */
-        TbSrnInfo(TbSrnInfo other) {
-            if (other != null) {
-                this.tbloaderid = other.tbloaderid;
-                this.tbloaderidHex = other.tbloaderidHex;
-                this.nextSrn = other.nextSrn;
-                this.primaryBegin = other.primaryBegin;
-                this.primaryEnd = other.primaryEnd;
-                this.backupBegin = other.backupBegin;
-                this.backupEnd = other.backupEnd;
-            }
-        }
-
-        /**
-         * Sets the id of this block of SRNs.
-         * @param tbloaderid The tbloader id, as an integer.
-         * @param tbloaderidHex The tbloader id as a hex string. No leading 0x.
-         */
-        void setId(int tbloaderid, String tbloaderidHex) {
-            this.tbloaderid = tbloaderid;
-            this.tbloaderidHex = tbloaderidHex;
-        }
-
-        /**
-         * Adds a block of available SRNs. Updates the tbloader id, if it has changed (that can
-         * happen if we exhause the SRNs for a tbloader id).
-         * @param srnAllocation A batch of reserved tbloader ids.
-         */
-        boolean applyReservation(Map<String,Object> srnAllocation) {
-            long begin_l = (Long)srnAllocation.getOrDefault("begin", -1);
-            int begin = (int)begin_l;
-            long end_l = (Long)srnAllocation.getOrDefault("end", -1);
-            int end = (int)end_l;
-            long id_l = (Long)srnAllocation.getOrDefault("id", -1);
-            int id = (int)id_l;
-            String hexid = (String)srnAllocation.getOrDefault("hexid", "");
-            if (begin > 0 && end > begin) {
-                if (id != tbloaderid) {
-                    setId(id, hexid);
-                }
-                if (primaryBegin == 0 && backupBegin == 0) {
-                    // If we have neither block, split the block between primary and backup
-                    primaryBegin = begin;
-                    primaryEnd = begin + ((end - begin) / 2);
-                    backupBegin = primaryEnd;
-                    backupEnd = end;
-                    nextSrn = primaryBegin;
-                } else if (primaryBegin == 0) {
-                    // else if we have no primary block, save block as primary
-                    primaryBegin = begin;
-                    primaryEnd = end;
-                    nextSrn = primaryBegin;
-                } else if (backupBegin == 0) {
-                    // else if we have no backup block, save block as backup
-                    backupBegin = begin;
-                    backupEnd = end;
-                } else {
-                    throw new IllegalStateException("Attempt to fill block, but no empty blocks.");
-                }
-                return true;
-            }
-            return false;
-        }
-
-        /**
-         * Query if there is an available SRN.
-         * @return true if there is an available SRN.
-         */
-        boolean hasNext() {
-            return (primaryBegin > 0 && primaryEnd > primaryBegin 
-                && nextSrn >= primaryBegin && nextSrn < primaryEnd);
-        }
-
-        /**
-         * Query if there is a backup block.
-         * @return true if there is a backup block.
-         */
-        boolean hasBackup() {
-            return (backupBegin > 0 && backupEnd > backupBegin);
-        }
-
-        /**
-         * Allocate the next SRN. If the allocation exhausts the primary block, switch the
-         * backup block. If the backup block is empty, no further allocations will be possible.
-         * @return The next srn.
-         */
-        int allocateNext() {
-            int next = 0;
-            if (primaryBegin > 0 && primaryEnd > primaryBegin && nextSrn >= primaryBegin
-                && nextSrn < primaryEnd) {
-                next = nextSrn++;
-                // Did that exhaust the primary block?
-                if (nextSrn >= primaryEnd) {
-                    // Yes, promote backup to primary
-                    primaryBegin = backupBegin;
-                    primaryEnd = backupEnd;
-                    backupBegin = 0;
-                    backupEnd = 0;
-                    nextSrn = primaryBegin;
-                }
-            }
-            return next;
-        }
-
-        /**
-         * Query the number of available SRNs.
-         * @return the number of available SRNs.
-         */
-        int available() {
-            int available = 0;
-            if (primaryBegin > 0 && primaryEnd > primaryBegin) {
-                available += primaryEnd - primaryBegin;
-            }
-            if (backupBegin > 0 && backupEnd > backupBegin) {
-                available += backupEnd - backupBegin;
-            }
-            return available;
-        }
-
-        public String getTbloaderidHex() {
-            return tbloaderidHex;
-        }
-    }
-
     private final Authenticator authInstance = Authenticator.getInstance();
 
     private final String email;
     private Properties tbSrnStore;
-    private TbSrnInfo tbSrnInfo;
+    private TbSrnAllocationInfo tbSrnAllocationInfo;
 
     TbSrnHelper(String email) {
         this.email = email;
         tbSrnStore = loadPropertiesFile();
-        tbSrnInfo = loadSrnInfo();
+        tbSrnAllocationInfo = loadSrnInfo();
     }
 
     /**
@@ -208,26 +51,26 @@ public class TbSrnHelper {
      * @return the number of available tb srns.
      */
     public int prepareForAllocation() {
-        if (tbSrnInfo == null || tbSrnInfo.primaryBegin == 0 || tbSrnInfo.backupBegin == 0) {
-            int nBlocks = (tbSrnInfo ==null || (
-                tbSrnInfo.primaryBegin ==0 && tbSrnInfo.backupBegin ==0)) ? 2 : 1;
-            TbSrnInfo newTbSrnInfo = new TbSrnInfo(tbSrnInfo);
+        if (tbSrnAllocationInfo == null || tbSrnAllocationInfo.getPrimaryBegin() == 0 || tbSrnAllocationInfo.getBackupBegin() == 0) {
+            int nBlocks = (tbSrnAllocationInfo ==null || (
+                tbSrnAllocationInfo.getPrimaryBegin() ==0 && tbSrnAllocationInfo.getBackupBegin() ==0)) ? 2 : 1;
+            TbSrnAllocationInfo newTbSrnAllocationInfo = new TbSrnAllocationInfo(tbSrnAllocationInfo);
             // We need at least one block of numbers.
             if (authInstance.isAuthenticated() && authInstance.isOnline()) {
                 Map<String,Object> srnAllocation = allocateTbSrnBlock(BLOCK_SIZE * nBlocks);
-                if (newTbSrnInfo.applyReservation(srnAllocation)) {
+                if (newTbSrnAllocationInfo.applyReservation(srnAllocation)) {
                     // We've successfully allocated a new block of SRNs. Try to persist it.
-                    Properties newTbSrnStore = saveSrnInfo(newTbSrnInfo);
+                    Properties newTbSrnStore = saveSrnInfo(newTbSrnAllocationInfo);
                     if (storePropertiesFile(newTbSrnStore)) {
                         // Successfully persisted, so publish to the rest of the app.
-                        this.tbSrnInfo = newTbSrnInfo;
+                        this.tbSrnAllocationInfo = newTbSrnAllocationInfo;
                         this.tbSrnStore = newTbSrnStore;
                     }
                 } // begin > 0 && end > begin
             } // isAuthenticated
         }
 
-        return tbSrnInfo != null ? tbSrnInfo.available() : 0;
+        return tbSrnAllocationInfo != null ? tbSrnAllocationInfo.available() : 0;
     }
 
     /**
@@ -235,7 +78,7 @@ public class TbSrnHelper {
      * @return true if there is any available SRN.
      */
     public boolean hasAvailableSrn() {
-        return tbSrnInfo != null && tbSrnInfo.hasNext();
+        return tbSrnAllocationInfo != null && tbSrnAllocationInfo.hasNext();
     }
 
     /**
@@ -245,18 +88,18 @@ public class TbSrnHelper {
      */
     public int allocateNextSrn() {
         int allocated = 0;
-        if (tbSrnInfo != null && tbSrnInfo.hasNext()) {
-            TbSrnInfo newTbSrnInfo = new TbSrnInfo(tbSrnInfo);
-            int next = newTbSrnInfo.allocateNext();
+        if (tbSrnAllocationInfo != null && tbSrnAllocationInfo.hasNext()) {
+            TbSrnAllocationInfo newTbSrnAllocationInfo = new TbSrnAllocationInfo(tbSrnAllocationInfo);
+            int next = newTbSrnAllocationInfo.allocateNext();
             // If we don't have a backup block, and we're authenticated & online, try to get one now.
-            if (!newTbSrnInfo.hasBackup() && authInstance.isAuthenticated() && authInstance.isOnline()) {
+            if (!newTbSrnAllocationInfo.hasBackup() && authInstance.isAuthenticated() && authInstance.isOnline()) {
                 Map<String, Object> srnAllocation = allocateTbSrnBlock(BLOCK_SIZE);
-                newTbSrnInfo.applyReservation(srnAllocation);
+                newTbSrnAllocationInfo.applyReservation(srnAllocation);
             }
             // Persist to disk before we return to caller.
-            Properties newTbLoaderInfo = saveSrnInfo(newTbSrnInfo);
+            Properties newTbLoaderInfo = saveSrnInfo(newTbSrnAllocationInfo);
             if (storePropertiesFile(newTbLoaderInfo)) {
-                tbSrnInfo = newTbSrnInfo;
+                tbSrnAllocationInfo = newTbSrnAllocationInfo;
                 tbSrnStore = newTbLoaderInfo;
                 allocated = next;
             }
@@ -264,8 +107,8 @@ public class TbSrnHelper {
         return allocated;
     }
 
-    public TbSrnInfo getTbSrnInfo() {
-        return new TbSrnInfo(this.tbSrnInfo);
+    public TbSrnAllocationInfo getTbSrnAllocationInfo() {
+        return new TbSrnAllocationInfo(this.tbSrnAllocationInfo);
     }
 
     /**
@@ -273,58 +116,58 @@ public class TbSrnHelper {
      * properties file).
      * @return the TbSrnInfo for the current user, or null if there is none or it can't be read.
      */
-    public TbSrnInfo loadSrnInfo() {
-        TbSrnInfo tbSrnInfo;
+    public TbSrnAllocationInfo loadSrnInfo() {
+        TbSrnAllocationInfo tbSrnAllocationInfo;
         if (tbSrnStore == null) return null;
         int tbLoaderId = getTbLoaderId();
         if (tbLoaderId <= 0) return null;
         String prefix = String.format("%d.", tbLoaderId);
 
-        int tbloaderid = Integer.parseInt(tbSrnStore.getProperty(prefix + ID_NAME));
-        String tbloaderidHex = tbSrnStore.getProperty(prefix + HEXID_NAME);
-        int nextSrn = Integer.parseInt(tbSrnStore.getProperty(prefix + NEXTSRN_NAME));
-        int primaryBase = Integer.parseInt(tbSrnStore.getProperty(prefix + PRIMARY_BEGIN_NAME));
-        int primaryMax = Integer.parseInt(tbSrnStore.getProperty(prefix + PRIMARY_END_NAME));
-        int backupBase = Integer.parseInt(tbSrnStore.getProperty(prefix + BACKUP_BEGIN_NAME));
-        int backupMax = Integer.parseInt(tbSrnStore.getProperty(prefix + BACKUP_END_NAME));
+        int tbloaderid = Integer.parseInt(tbSrnStore.getProperty(prefix + TB_SRN_ID_NAME));
+        String tbloaderidHex = tbSrnStore.getProperty(prefix + TB_SRN_HEXID_NAME);
+        int nextSrn = Integer.parseInt(tbSrnStore.getProperty(prefix + TB_SRN_NEXTSRN_NAME));
+        int primaryBase = Integer.parseInt(tbSrnStore.getProperty(prefix + TB_SRN_PRIMARY_BEGIN_NAME));
+        int primaryEnd = Integer.parseInt(tbSrnStore.getProperty(prefix + TB_SRN_PRIMARY_END_NAME));
+        int backupBase = Integer.parseInt(tbSrnStore.getProperty(prefix + TB_SRN_BACKUP_BEGIN_NAME));
+        int backupEnd = Integer.parseInt(tbSrnStore.getProperty(prefix + TB_SRN_BACKUP_END_NAME));
 
         assert(String.format("%04x", tbloaderid).equalsIgnoreCase(tbloaderidHex));
-        assert(nextSrn >= primaryBase && nextSrn < primaryMax);
-        assert((backupBase < backupMax) || (backupBase == 0 && backupMax == 0));
+        assert(nextSrn >= primaryBase && nextSrn < primaryEnd);
+        assert((backupBase < backupEnd) || (backupBase == 0 && backupEnd == 0));
 
-        tbSrnInfo = new TbSrnInfo(tbloaderid,
+        tbSrnAllocationInfo = new TbSrnAllocationInfo(tbloaderid,
             tbloaderidHex,
             nextSrn,
             primaryBase,
-            primaryMax,
+            primaryEnd,
             backupBase,
-            backupMax);
-        return tbSrnInfo;
+            backupEnd);
+        return tbSrnAllocationInfo;
     }
 
     /**
      * Saves the given TbSrnInfo into a clone of the TbSrnStore. This lets us save the updated
      * properties to disk before exposing them to the application.
-     * @param tbSrnInfo to be saved.
+     * @param tbSrnAllocationInfo to be saved.
      * @return a new Properties that is a clone of the existing TbSrnStore updated with the TbSrnInfo.
      */
-    private Properties saveSrnInfo(TbSrnInfo tbSrnInfo) {
+    private Properties saveSrnInfo(TbSrnAllocationInfo tbSrnAllocationInfo) {
         Properties newTbLoaderInfo = this.tbSrnStore == null ? new Properties() : (Properties)this.tbSrnStore
             .clone();
         
-        int tbLoaderId = tbSrnInfo.tbloaderid;
+        int tbLoaderId = tbSrnAllocationInfo.getTbloaderid();
         String prefix = String.format("%d.", tbLoaderId);
 
         // Associate the email address with the tbloader id
         newTbLoaderInfo.setProperty(email, String.valueOf(tbLoaderId));
 
-        newTbLoaderInfo.setProperty(prefix + ID_NAME, String.valueOf(tbSrnInfo.tbloaderid));
-        newTbLoaderInfo.setProperty(prefix + HEXID_NAME, tbSrnInfo.tbloaderidHex);
-        newTbLoaderInfo.setProperty(prefix + NEXTSRN_NAME, String.valueOf(tbSrnInfo.nextSrn));
-        newTbLoaderInfo.setProperty(prefix + PRIMARY_BEGIN_NAME, String.valueOf(tbSrnInfo.primaryBegin));
-        newTbLoaderInfo.setProperty(prefix + PRIMARY_END_NAME, String.valueOf(tbSrnInfo.primaryEnd));
-        newTbLoaderInfo.setProperty(prefix + BACKUP_BEGIN_NAME, String.valueOf(tbSrnInfo.backupBegin));
-        newTbLoaderInfo.setProperty(prefix + BACKUP_END_NAME, String.valueOf(tbSrnInfo.backupEnd));
+        newTbLoaderInfo.setProperty(prefix + TB_SRN_ID_NAME, String.valueOf(tbSrnAllocationInfo.getTbloaderid()));
+        newTbLoaderInfo.setProperty(prefix + TB_SRN_HEXID_NAME, tbSrnAllocationInfo.getTbloaderidHex());
+        newTbLoaderInfo.setProperty(prefix + TB_SRN_NEXTSRN_NAME, String.valueOf(tbSrnAllocationInfo.getNextSrn()));
+        newTbLoaderInfo.setProperty(prefix + TB_SRN_PRIMARY_BEGIN_NAME, String.valueOf(tbSrnAllocationInfo.getPrimaryBegin()));
+        newTbLoaderInfo.setProperty(prefix + TB_SRN_PRIMARY_END_NAME, String.valueOf(tbSrnAllocationInfo.getPrimaryEnd()));
+        newTbLoaderInfo.setProperty(prefix + TB_SRN_BACKUP_BEGIN_NAME, String.valueOf(tbSrnAllocationInfo.getBackupBegin()));
+        newTbLoaderInfo.setProperty(prefix + TB_SRN_BACKUP_END_NAME, String.valueOf(tbSrnAllocationInfo.getBackupEnd()));
         
         return newTbLoaderInfo;
     }

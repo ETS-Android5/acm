@@ -2,6 +2,7 @@ package org.literacybridge.androidtbloader.util;
 
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
@@ -12,9 +13,15 @@ import com.amazonaws.services.s3.model.ListObjectsV2Request;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
+import com.android.volley.*;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.literacybridge.androidtbloader.TBLoaderAppContext;
 import org.literacybridge.androidtbloader.signin.UserHelper;
 import org.literacybridge.core.fs.OperationLog;
+import org.literacybridge.core.tbloader.TbSrnAllocationInfo;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,11 +30,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Properties;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,6 +42,8 @@ import static org.literacybridge.androidtbloader.util.Constants.ISO8601;
 
 public class Config {
     private static final String TAG = "TBL!:" + Config.class.getSimpleName();
+
+    public static final String TB_SRN_NEXT = "device_serial_number_next";
 
     public static final String SERIAL_NUMBER_COUNTER_KEY = "device_serial_number_counter";
     public static final String DEVICE_ID_KEY = "tbcd";
@@ -58,6 +63,8 @@ public class Config {
         void onError();
     }
 
+    private TbSrnHelper mTbSrnHelper;
+
     private boolean mIsAdvanced = false;
     private String mTbcdId;
     private String mProjectFilter;
@@ -75,6 +82,13 @@ public class Config {
     public boolean isAdvanced() { return mIsAdvanced; }
 
     public String getUsername() { return mUsername; }
+
+    public Config(TBLoaderAppContext appContext) {
+        mApplicationContext = appContext;
+        mTbSrnHelper = new TbSrnHelper(appContext);
+        SharedPreferences userPrefs = PreferenceManager.getDefaultSharedPreferences(appContext);
+        gotUserSettings(userPrefs, null);
+    }
 
     public boolean haveCachedConfig() {
         SharedPreferences userPrefs = PreferenceManager.getDefaultSharedPreferences(
@@ -114,13 +128,7 @@ public class Config {
 
     private TBLoaderAppContext mApplicationContext;
 
-    public Config(TBLoaderAppContext appContext) {
-        mApplicationContext = appContext;
-        SharedPreferences userPrefs = PreferenceManager.getDefaultSharedPreferences(appContext);
-        gotUserSettings(userPrefs, null);
-    }
-
-    private void gotUserSettings(SharedPreferences prefs, final Listener listener) {
+     private void gotUserSettings(SharedPreferences prefs, final Listener listener) {
         mTbcdId = prefs.getString(DEVICE_ID_KEY, DEVICE_ID_DEFAULT);
         // Default project filter is "match anything"
         mProjectFilter = prefs.getString(PROJECTS_FILTER_KEY, PROJECTS_FILTER_DEFAULT);
@@ -133,6 +141,10 @@ public class Config {
             OperationLog.log("UserNameChanged").put("from", mUsername).put("to", newName).finish();
             mUsername = newName;
         }
+
+
+
+
         if (listener != null) {
             listener.onSuccess();
         }
@@ -236,6 +248,18 @@ public class Config {
                     return;
                 }
                 listener.onError();
+            }
+        });
+
+        mTbSrnHelper.prepareForAllocation(new Listener(){
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "Success");
+            }
+
+            @Override
+            public void onError() {
+                Log.d(TAG, "Failure");
             }
         });
 

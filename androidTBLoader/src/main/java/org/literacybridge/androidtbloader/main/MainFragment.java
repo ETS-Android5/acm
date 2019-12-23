@@ -394,45 +394,32 @@ public class MainFragment extends Fragment {
     private void getUserDetails() {
         final OperationLog.Operation opLog = OperationLog.startOperation("GetUserDetails");
 
-        GetDetailsHandler detailsHandler = new GetDetailsHandler() {
-            @Override
-            public void onSuccess(CognitoUserDetails cognitoUserDetails) {
-                Log.d(TAG, "detailsHandler success: " + cognitoUserDetails.getAttributes().getAttributes().toString());
-                // Store details in the AppHandler
-                UserHelper.setUserDetails(cognitoUserDetails);
-                mUserDetails = cognitoUserDetails.getAttributes().getAttributes();
-                opLog.finish(mUserDetails);
-                final SharedPreferences userPrefs = PreferenceManager.getDefaultSharedPreferences(
-                        mApplicationContext);
-                SharedPreferences.Editor prefsEditor = userPrefs.edit();
-                prefsEditor.putString("greeting", mUserDetails.get("custom:greeting"));
-                prefsEditor.putString("email", mUserDetails.get("email"));
-                prefsEditor.apply();
+        Map<String, String> userDetails = UserHelper.getAuthenticationPayload();
+        if (userDetails.size() > 0) {
+            final SharedPreferences userPrefs = PreferenceManager.getDefaultSharedPreferences(
+                    mApplicationContext);
+            SharedPreferences.Editor prefsEditor = userPrefs.edit();
 
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        updateGreeting();
-                        setButtonState();
-                    }
-                });
-                Log.d(TAG, "User Attributes: " + mUserDetails.toString());
-                awaitingUserDetails = false;
-                checkStartupInformationComplete();
+            for (Map.Entry<String, String> e : userDetails.entrySet()) {
+                prefsEditor.putString(e.getKey(), e.getValue());
+                opLog.put(e.getKey(), e.getValue());
             }
+            prefsEditor.putString("greeting", userDetails.get("custom:greeting"));
 
-            @Override
-            public void onFailure(Exception exception) {
-                // Probably a network issue.
-                awaitingUserDetails = false;
-                opLog.put("failed", true).finish();
-                checkStartupInformationComplete();
-            }
-        };
+            prefsEditor.apply();
+            opLog.finish();
 
-        String userId = UserHelper.getUserId();
-        Log.d(TAG, "getDetails for user " + userId);
-        UserHelper.getPool().getUser(userId).getDetailsInBackground(detailsHandler);
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    updateGreeting();
+                    setButtonState();
+                }
+            });
+        }
+        Log.d(TAG, "User Attributes: " + mUserDetails.toString());
+        awaitingUserDetails = false;
+        checkStartupInformationComplete();
     }
 
     /**

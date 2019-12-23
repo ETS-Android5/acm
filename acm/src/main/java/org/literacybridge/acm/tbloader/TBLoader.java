@@ -344,7 +344,7 @@ public class TBLoader extends JFrame {
     private void setDeviceIdAndPaths() throws IOException {
         try {
             TbSrnHelper srnHelper = Authenticator.getInstance().getTbSrnHelper();
-            deviceIdHex = srnHelper.getTbSrnInfo().getTbloaderidHex();
+            deviceIdHex = srnHelper.getTbSrnAllocationInfo().getTbloaderidHex();
             userName = Authenticator.getInstance().getUserName();
             userEmail = Authenticator.getInstance().getuserEmail();
 
