@@ -400,13 +400,16 @@ public class UserHelper {
             for (Map.Entry e : eset) {
                 payload.put(e.getKey().toString(), e.getValue().toString());
             }
-            mAuthenticationPayload = payload;
-            refreshWithSync();
+            if (payload.size() > 0) {
+                mAuthenticationPayload = payload;
+                refreshWithSync();
+            }
         }
         return mAuthenticationPayload;
     }
     public static String getAuthenticationPayload(String key) {
-        return getAuthenticationPayload().get(key);
+        Map<String, String> props = getAuthenticationPayload();
+        return props==null ? null : props.get(key);
     }
 
     private static final int HEADER = 0;

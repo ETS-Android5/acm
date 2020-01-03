@@ -1,6 +1,6 @@
 package org.literacybridge.acm.tbloader;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.literacybridge.acm.gui.resourcebundle.LabelProvider;
 
 import javax.swing.*;

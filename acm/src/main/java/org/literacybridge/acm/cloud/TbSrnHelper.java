@@ -58,7 +58,7 @@ public class TbSrnHelper {
             // We need at least one block of numbers.
             if (authInstance.isAuthenticated() && authInstance.isOnline()) {
                 Map<String,Object> srnAllocation = allocateTbSrnBlock(BLOCK_SIZE * nBlocks);
-                if (newTbSrnAllocationInfo.applyReservation(srnAllocation)) {
+                if (applyReservation(newTbSrnAllocationInfo, srnAllocation)) {
                     // We've successfully allocated a new block of SRNs. Try to persist it.
                     Properties newTbSrnStore = saveSrnInfo(newTbSrnAllocationInfo);
                     if (storePropertiesFile(newTbSrnStore)) {
@@ -94,7 +94,7 @@ public class TbSrnHelper {
             // If we don't have a backup block, and we're authenticated & online, try to get one now.
             if (!newTbSrnAllocationInfo.hasBackup() && authInstance.isAuthenticated() && authInstance.isOnline()) {
                 Map<String, Object> srnAllocation = allocateTbSrnBlock(BLOCK_SIZE);
-                newTbSrnAllocationInfo.applyReservation(srnAllocation);
+                applyReservation(newTbSrnAllocationInfo, srnAllocation);
             }
             // Persist to disk before we return to caller.
             Properties newTbLoaderInfo = saveSrnInfo(newTbSrnAllocationInfo);
@@ -259,5 +259,24 @@ public class TbSrnHelper {
 
         return result;
     }
+
+    /**
+     * Helper function to translate from our local srn allocation object to the actual
+     * function implemented by TbSrnAllocationInfo
+     * @param tbSrnAllocationInfo the TbSrnAllocationInfo to be updated.
+     * @param srnAllocation the allocation with which to update it.
+     * @return true if the allocation was well formed, false otherwise.
+     */
+    public boolean applyReservation(TbSrnAllocationInfo tbSrnAllocationInfo, Map<String,Object> srnAllocation) {
+        long begin_l = (Long) srnAllocation.getOrDefault("begin", -1);
+        int begin = (int) begin_l;
+        long end_l = (Long) srnAllocation.getOrDefault("end", -1);
+        int end = (int) end_l;
+        long id_l = (Long) srnAllocation.getOrDefault("id", -1);
+        int id = (int) id_l;
+        String hexid = (String) srnAllocation.getOrDefault("hexid", "");
+        return tbSrnAllocationInfo.applyReservation(id, hexid, begin, end);
+    }
+
 
 }

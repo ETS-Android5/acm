@@ -159,7 +159,7 @@ public class Authenticator {
 
     public enum SigninResult {FAILURE, SUCCESS, CACHED_OFFLINE, OFFLINE}
     public SigninResult doSignIn(Window parent) {
-        Triple<String, String,String> savedSignInDetails = identityPersistence.retrieveSignInDetails();
+        Triple<String, String, String> savedSignInDetails = identityPersistence.retrieveSignInDetails();
         SigninResult result;
 
         if (isOnline()) {
@@ -175,6 +175,18 @@ public class Authenticator {
                 result = SigninResult.SUCCESS;
 
                 if (dialog.isRememberMeSelected()) {
+                    // These are the values that we get from the Cognito signin. As of 2019-12-24
+                    // [sub, exp, iat, token_use, event_id, aud, iss, phone_number_verified, auth_time # Cognito values
+                    // custom:greeting # what the user asked to be called.
+                    // email_verified # will always be true if they're here; means they responded to their email.
+                    // edit # regex of projects the user can edit.
+                    // admin # if true, user is an admin in their projects.
+                    // cognito:username # sign-in user name. These are unique, but are chosen by the user.
+                    // view # regex of projects the user can view.
+                    // phone_number # user's phone number, if they provided one.
+                    // email # user's email. We use this for unique identity.
+                    // ]
+
                     Map<String, String> props = new HashMap<>();
                     authenticationInfo.forEach((k,v)->{props.put(k.toString(),v.toString());});
                     identityPersistence.saveSignInDetails(userName, userEmail, dialog.getPasswordText(), props);

@@ -1,7 +1,6 @@
 package org.literacybridge.core.tbloader;
 
-import java.util.Map;
-
+@SuppressWarnings("unused")
 public class TbSrnAllocationInfo {
     public static final String TB_SRN_PRIMARY_END_NAME = "primaryend";
     public static final String TB_SRN_ID_NAME = "tbloaderid";
@@ -67,18 +66,13 @@ public class TbSrnAllocationInfo {
     /**
      * Adds a block of available SRNs. Updates the tbloader id, if it has changed (that can
      * happen if we exhause the SRNs for a tbloader id).
-     * @param srnAllocation A batch of reserved tbloader ids.
+     * @param id The decimal id returned by the allocation.
+     * @param hexid Hex format of the id.
+     * @param begin First allocated serial number.
+     * @param end Last allocated +1 serial number (STL-ish end())
+     * @return True if the allocation is well formed, false otherwise.
      */
-    public boolean applyReservation(Map<String,Object> srnAllocation) {
-        long begin_l = (Long) srnAllocation.getOrDefault("begin", -1);
-        int begin = (int) begin_l;
-        long end_l = (Long) srnAllocation.getOrDefault("end", -1);
-        int end = (int) end_l;
-        long id_l = (Long) srnAllocation.getOrDefault("id", -1);
-        int id = (int) id_l;
-        String hexid = (String) srnAllocation.getOrDefault("hexid", "");
-        return applyReservation(id, hexid, begin, end);
-    }
+    @SuppressWarnings("UnusedReturnValue")
     public boolean applyReservation(int id, String hexid, int begin, int end) {
         if (begin > 0 && end > begin) {
             if (id != tbloaderid) {
@@ -146,6 +140,16 @@ public class TbSrnAllocationInfo {
             }
         }
         return next;
+    }
+
+    /**
+     * Given a serial number as an integer, format it as a serial number string.
+     * @param srn The serial number to format.
+     * @return The formatted serial number, like "b-000C0123"
+     */
+    public String formatSrn(int srn) {
+        assert(tbloaderidHex != null);
+        return String.format("b-%s%04x", tbloaderidHex, srn);
     }
 
     /**

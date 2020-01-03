@@ -1,6 +1,6 @@
 package org.literacybridge.acm.cloud;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.literacybridge.acm.gui.Assistant.PlaceholderTextField;
 import org.literacybridge.acm.gui.Assistant.RoundedLineBorder;
 import org.literacybridge.acm.gui.util.UIUtils;
