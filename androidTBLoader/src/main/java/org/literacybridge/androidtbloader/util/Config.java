@@ -2,6 +2,7 @@ package org.literacybridge.androidtbloader.util;
 
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+import org.apache.commons.lang3.StringUtils;
 import org.literacybridge.androidtbloader.TBLoaderAppContext;
 import org.literacybridge.core.fs.OperationLog;
 
@@ -39,6 +40,7 @@ public class Config {
     private static final String TBCDID_PROP = "tbcd";
 
     private final SharedPreferences mUserPrefs;
+    private final TBLoaderAppContext mAppContext;
 
     public interface Listener {
         void onSuccess();
@@ -48,7 +50,6 @@ public class Config {
 
     private TbSrnHelper mTbSrnHelper;
 
-    private String mProjectFilter;
     private Pattern mProjectPattern;
 
     public String getTbcdid() {
@@ -74,9 +75,20 @@ public class Config {
     }
 
     public Config(TBLoaderAppContext appContext) {
-        mApplicationContext = appContext;
-        mUserPrefs = PreferenceManager.getDefaultSharedPreferences(appContext);
-        mTbSrnHelper = new TbSrnHelper(appContext);
+        mAppContext = appContext;
+        mUserPrefs = PreferenceManager.getDefaultSharedPreferences(mAppContext);
+    }
+
+    /**
+     * This should be called to clear any user-specific cached settings.
+     */
+    public void onSignOut() {
+        SharedPreferences userPrefs = PreferenceManager.getDefaultSharedPreferences(
+            TBLoaderAppContext.getInstance());
+        SharedPreferences.Editor editor = userPrefs.edit();
+        editor.clear().apply();
+        mProjectPattern = null;
+        mTbSrnHelper = null;
     }
 
     public void applyUserDetails(Map<String, String> details) {
@@ -97,24 +109,13 @@ public class Config {
                 prefsEditor.remove(TBCDID_PROP);
             }
 
-            prefsEditor.apply();
+            prefsEditor.commit();
             opLog.finish();
         }
     }
 
     public boolean haveCachedConfig() {
         return mUserPrefs.getString(EMAIL_PROP, null) != null;
-    }
-
-    /**
-     * This should be called to clear any user-specific cached settings.
-     */
-    public void onSignOut() {
-        SharedPreferences userPrefs = PreferenceManager.getDefaultSharedPreferences(
-            TBLoaderAppContext.getInstance());
-        SharedPreferences.Editor editor = userPrefs.edit();
-        editor.clear().apply();
-        mProjectPattern = null;
     }
 
     /**
@@ -125,15 +126,31 @@ public class Config {
      * @return true if the current user should see the project, false otherwise.
      */
     public boolean isUsersProject(String projectName) {
-        if (mProjectFilter == null) return true;
         if (mProjectPattern == null) {
-            mProjectPattern = Pattern.compile("(?i)" + mProjectFilter);
+            String editable = mUserPrefs.getString(EDIT_PROP, "");
+            String viewable = mUserPrefs.getString(VIEW_PROP, "");
+            // Case insensitive. Match start of string....
+            StringBuilder pattern = new StringBuilder().append("(?i)^(");
+            if (!StringUtils.isEmpty(editable)) {
+                // Match editables...
+                pattern.append(editable);
+                if (!StringUtils.isEmpty(viewable)) {
+                    // or...
+                    pattern.append('|');
+                }
+            }
+            if (!StringUtils.isEmpty(viewable)) {
+                // ...match vieweables
+                pattern.append(viewable);
+            }
+            // Match end of string.
+            pattern.append(")$");
+
+            mProjectPattern = Pattern.compile(pattern.toString());
         }
         Matcher m = mProjectPattern.matcher(projectName);
         return m.matches();
     }
-
-    private TBLoaderAppContext mApplicationContext;
 
     /**
      * Attempt to allocate the next Talking Book serial number for this TBLoader. If there are
@@ -153,6 +170,7 @@ public class Config {
      * @param listener A Listener to accept the results.
      */
     public void prepareForSerialNumberAllocation(final Listener listener) {
+        mTbSrnHelper = new TbSrnHelper(mAppContext);
         String email = getEmail();
         mTbSrnHelper.prepareForAllocation(email, new Listener() {
             @Override

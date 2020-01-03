@@ -140,6 +140,7 @@ public class UserHelper {
 
     public static void setCurrSession(Context applicationContext, CognitoUserSession session, final Runnable done) {
         currSession = session;
+        mAuthenticationPayload = null;
         Map<String,String> payload = getAuthenticationPayload();
         credentialsProvider = getCredentialsProvider(applicationContext);
 
