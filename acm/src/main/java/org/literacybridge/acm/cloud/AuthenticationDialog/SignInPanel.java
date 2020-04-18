@@ -1,9 +1,7 @@
 package org.literacybridge.acm.cloud.AuthenticationDialog;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Triple;
 import org.literacybridge.acm.cloud.ActionLabel;
-import org.literacybridge.acm.cloud.Authenticator;
 import org.literacybridge.acm.gui.Assistant.PlaceholderTextField;
 import org.literacybridge.acm.gui.util.UIUtils;
 
@@ -29,8 +27,8 @@ public class SignInPanel extends DialogPanel {
     private final JCheckBox showPassword;
     private final JCheckBox rememberMe;
 
-    public SignInPanel(DialogController dialogController) {
-        super(dialogController, DIALOG_TITLE);
+    public SignInPanel(DialogController dialogController, DialogController.Panels panel) {
+        super(dialogController, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
         // The GUI
         dialogPanel.setLayout(new GridBagLayout());
@@ -116,7 +114,7 @@ public class SignInPanel extends DialogPanel {
      * includes the "show password" state.
      * @param pwd with "show password" state.
      */
-    void setPassword(Triple<String,Boolean,Boolean> pwd) {
+    void setPassword(PasswordInfo pwd) {
         passwordField.setText(pwd.getLeft());
         if (pwd.getMiddle()) {
             showPassword.setEnabled(true);
@@ -200,7 +198,7 @@ public class SignInPanel extends DialogPanel {
     }
 
     @SuppressWarnings("FieldCanBeLocal")
-    private KeyListener textKeyListener = new KeyAdapter() {
+    private final KeyListener textKeyListener = new KeyAdapter() {
         @Override
         public void keyTyped(KeyEvent e) {
             super.keyTyped(e);
@@ -217,7 +215,7 @@ public class SignInPanel extends DialogPanel {
      * presence of the user id or password).
      */
     @SuppressWarnings("FieldCanBeLocal")
-    private DocumentListener textDocumentListener = new DocumentListener() {
+    private final DocumentListener textDocumentListener = new DocumentListener() {
         @Override
         public void insertUpdate(DocumentEvent e) {
             enableControls();

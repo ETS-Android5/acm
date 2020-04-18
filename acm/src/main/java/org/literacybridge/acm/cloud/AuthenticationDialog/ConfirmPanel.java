@@ -18,8 +18,8 @@ public class ConfirmPanel extends DialogPanel {
     private final PlaceholderTextField confirmationField;
     private final JButton confirm;
 
-    public ConfirmPanel(DialogController dialogController) {
-        super(dialogController, DIALOG_TITLE);
+    public ConfirmPanel(DialogController dialogController, DialogController.Panels panel) {
+        super(dialogController, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
 
         // The GUI
@@ -96,7 +96,7 @@ public class ConfirmPanel extends DialogPanel {
      * the "Change" button as appropriate.
      */
     @SuppressWarnings("FieldCanBeLocal")
-    private DocumentListener passwordDocListener = new DocumentListener() {
+    private final DocumentListener passwordDocListener = new DocumentListener() {
         private void check() {
             String code = confirmationField.getText();
             confirm.setEnabled(code.length() > 0);

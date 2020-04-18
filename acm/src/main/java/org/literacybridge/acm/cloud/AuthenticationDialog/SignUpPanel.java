@@ -1,7 +1,5 @@
 package org.literacybridge.acm.cloud.AuthenticationDialog;
 
-import org.apache.commons.lang3.tuple.ImmutableTriple;
-import org.apache.commons.lang3.tuple.Triple;
 import org.literacybridge.acm.gui.Assistant.PlaceholderTextField;
 
 import javax.swing.*;
@@ -28,8 +26,8 @@ public class SignUpPanel extends DialogPanel {
     private final JButton createAccount;
     private final JButton haveCode;
 
-    public SignUpPanel(DialogController dialogController) {
-        super(dialogController, DIALOG_TITLE);
+    public SignUpPanel(DialogController dialogController, DialogController.Panels panel) {
+        super(dialogController, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
         // The GUI
         dialogPanel.setLayout(new GridBagLayout());
@@ -128,8 +126,8 @@ public class SignUpPanel extends DialogPanel {
      * Gets the password and the state of "show password".
      * @return a Triple of password, allow show, do show.
      */
-    Triple<String,Boolean,Boolean> getPassword() {
-        return new ImmutableTriple<>(passwordField1.getText(),
+    PasswordInfo getPassword() {
+        return new PasswordInfo(passwordField1.getText(),
             showPassword.isEnabled(), showPassword.isSelected());
     }
 
@@ -180,7 +178,7 @@ public class SignUpPanel extends DialogPanel {
      * the "Change" button as appropriate.
      */
     @SuppressWarnings("FieldCanBeLocal")
-    private DocumentListener passwordDocListener = new DocumentListener() {
+    private final DocumentListener passwordDocListener = new DocumentListener() {
         private void check() {
             String name = usernameField.getText();
             String p1 = passwordField1.getText();

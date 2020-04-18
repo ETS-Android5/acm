@@ -8,11 +8,13 @@ import java.awt.event.ComponentEvent;
 class DialogPanel extends JPanel {
 
     final DialogController dialogController;
+    final DialogController.Panels panel;
     private final String dialogTitle;
 
-    DialogPanel(DialogController dialogController, String dialogTitle) {
+    DialogPanel(DialogController dialogController, String dialogTitle, DialogController.Panels panel) {
         this.dialogController = dialogController;
         this.dialogTitle = dialogTitle;
+        this.panel = panel;
 
         addComponentListener(componentAdapter);
     }
@@ -38,6 +40,23 @@ class DialogPanel extends JPanel {
 
     void onCancel(ActionEvent e) {
         // Override as needed
+    }
+
+    /**
+     * Apache made the ImmutableTriple final, so we can't provide a reasonably named alias.
+     *
+     * I wonder what they were thinking?
+     */
+    static class PasswordInfo  {
+        public final String password;
+        public final Boolean showEnabled;
+        public final Boolean showSelected;
+
+        public PasswordInfo(String password, Boolean showEnabled, Boolean showSelected) {
+            this.password = password;
+            this.showEnabled = showEnabled;
+            this.showSelected = showSelected;
+        }
     }
 
 }

@@ -1,10 +1,9 @@
 package org.literacybridge.acm.cloud.AuthenticationDialog;
 
-import org.apache.commons.lang3.tuple.Triple;
+import org.literacybridge.acm.cloud.AuthenticationDialog.DialogPanel.PasswordInfo;
 import org.literacybridge.acm.cloud.Authenticator;
 import org.literacybridge.acm.gui.Assistant.RoundedLineBorder;
 import org.literacybridge.acm.gui.util.UIUtils;
-import org.literacybridge.acm.utils.SwingUtils;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -19,27 +18,43 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 
+import static java.util.Arrays.stream;
 import static org.literacybridge.acm.gui.util.UIUtils.UiOptions.TOP_THIRD;
 
 public class DialogController extends JDialog {
-    public static final String SIGNIN_CARD = "signin";
-    public static final String SIGNUP_CARD = "signup";
-    public static final String RESET_CARD = "reset";
-    public static final String CONFIRM_CARD = "confirm";
+    enum Panels {
+        SignInPanel(450, SignInPanel::new),
+        SignUpPanel(320, SignUpPanel::new),
+        ResetPanel(280, ResetPanel::new),
+        ConfirmPanel(450, ConfirmPanel::new),
+        EmailPanel(100, EmailPanel::new),
+        ProgramPanel(100, ProgramPanel::new);
+
+        int minimumHeight;
+        BiFunction<DialogController, Panels, DialogPanel> ctor;
+
+        Panels(int minimumHeight, BiFunction<DialogController, Panels, DialogPanel> ctor) {
+            this.minimumHeight = minimumHeight;
+            this.ctor = ctor;
+        }
+    }
 
     private final CardLayout cardLayout;
-    private SignInPanel signInPanel;
-    private SignUpPanel signUpPanel;
-    private ResetPanel resetPanel;
-    private ConfirmPanel confirmPanel;
     private final JPanel cardPanel;
 
     private JLabel authMessage;
-    private Map<String,DialogPanel> dialogPanelMap = new HashMap<>();
+    private final Map<Panels,DialogPanel> cardPanelMap = new HashMap<>();
     private DialogPanel currentPanel = null;
 
     Authenticator.CognitoInterface cognitoInterface;
+
+    private void makePanel(Panels panel) {
+        DialogPanel newPanel = panel.ctor.apply(this, panel);
+        cardPanel.add(panel.name(), newPanel);
+        cardPanelMap.put(panel, newPanel);
+    }
 
     public DialogController(Window owner, Authenticator.CognitoInterface cognitoInterface) {
         super(owner, "Amplio Sign In", ModalityType.DOCUMENT_MODAL);
@@ -60,18 +75,8 @@ public class DialogController extends JDialog {
         borderPanel.add(cardPanel, BorderLayout.CENTER);
         cardPanel.setBorder(new EmptyBorder(6, 6, 6, 6));
 
-        signInPanel = new SignInPanel(this);
-        signUpPanel = new SignUpPanel(this);
-        resetPanel = new ResetPanel(this);
-        confirmPanel = new ConfirmPanel(this);
-        cardPanel.add(SIGNIN_CARD, signInPanel);
-        dialogPanelMap.put(SIGNIN_CARD, signInPanel);
-        cardPanel.add(SIGNUP_CARD, signUpPanel);
-        dialogPanelMap.put(SIGNUP_CARD, signUpPanel);
-        cardPanel.add(RESET_CARD, resetPanel);
-        dialogPanelMap.put(RESET_CARD, resetPanel);
-        cardPanel.add(CONFIRM_CARD, confirmPanel);
-        dialogPanelMap.put(CONFIRM_CARD, confirmPanel);
+        // Create the panels, add them to the cardPanel, and to the dialogPanelMap.
+        stream(Panels.values()).forEach(this::makePanel);
 
         ActionListener escListener = e -> currentPanel.onCancel(e);
 
@@ -87,7 +92,7 @@ public class DialogController extends JDialog {
         getRootPane().setDefaultButton(null);
 
 
-        activateCard(SIGNIN_CARD);
+        activateCard(Panels.SignInPanel);
 
         // Center horizontally and in the top 2/3 of screen.
         setMinimumSize(new Dimension(450, 250));
@@ -96,29 +101,38 @@ public class DialogController extends JDialog {
 
     }
 
+    private SignInPanel signInPanel() {
+        return ((SignInPanel)cardPanelMap.get(Panels.SignInPanel));
+    }
+    private SignUpPanel signUpPanel() {
+        return ((SignUpPanel)cardPanelMap.get(Panels.SignUpPanel));
+    }
+    private ResetPanel resetPanel() {
+        return ((ResetPanel)cardPanelMap.get(Panels.ResetPanel));
+    }
     public boolean isRememberMeSelected() {
-        return signInPanel.isRememberMeSelected();
+        return signInPanel().isRememberMeSelected();
     }
 
     public String getUsername() {
-        return signInPanel.getUsername();
+        return signInPanel().getUsername();
     }
 
     String getNewUsername() {
-        return signUpPanel.getUsername();
+        return signUpPanel().getUsername();
     }
 
     public String getPassword() {
-        return signInPanel.getPassword();
+        return signInPanel().getPassword();
     }
 
     public void setSavedCredentials(String username, String password) {
-        signInPanel.setSavedCredentials(username, password);
+        signInPanel().setSavedCredentials(username, password);
     }
 
-    private void activateCard(String card) {
-        currentPanel = dialogPanelMap.get(card);
-        cardLayout.show(cardPanel, card);
+    private void activateCard(Panels panel) {
+        currentPanel = cardPanelMap.get(panel);
+        cardLayout.show(cardPanel, panel.name());
     }
 
     /**
@@ -144,37 +158,37 @@ public class DialogController extends JDialog {
         if (getHeight() < 320) {
             setMinimumSize(new Dimension(getWidth(), 320));
         }
-        activateCard(SIGNUP_CARD);
+        activateCard(Panels.SignUpPanel);
     }
 
     void gotoResetCard() {
         if (getHeight() < 280) {
             setMinimumSize(new Dimension(getWidth(), 280));
         }
-        activateCard(RESET_CARD);
+        activateCard(Panels.ResetPanel);
     }
 
     void gotoConfirmationCard() {
-        activateCard(CONFIRM_CARD);
+        activateCard(Panels.ConfirmPanel);
     }
 
     /**
      * Called by the sub-panels when user clicks OK on the panel.
      * @param panel that clicked OK.
      */
-    void ok(JPanel panel) {
-        if (panel == signInPanel) {
+    void ok(DialogPanel panel) {
+        if (panel.panel == Panels.SignInPanel) {
             setVisible(false);
-        } else if (panel == resetPanel) {
-            Triple<String,Boolean,Boolean> pwd = resetPanel.getPassword();
-            signInPanel.setPassword(pwd);
-            activateCard(SIGNIN_CARD);
-        } else if (panel == confirmPanel) {
-            Triple<String,Boolean,Boolean> pwd = signUpPanel.getPassword();
-            signInPanel.setPassword(pwd);
-            String username = signUpPanel.getUsername();
-            signInPanel.setUsername(username);
-            activateCard(SIGNIN_CARD);
+        } else if (panel.panel == Panels.ResetPanel) {
+            PasswordInfo pwd = resetPanel().getPassword();
+            signInPanel().setPassword(pwd);
+            activateCard(Panels.SignInPanel);
+        } else if (panel.panel == Panels.ConfirmPanel) {
+            PasswordInfo pwd = signUpPanel().getPassword();
+            signInPanel().setPassword(pwd);
+            String username = signUpPanel().getUsername();
+            signInPanel().setUsername(username);
+            activateCard(Panels.SignInPanel);
         }
     }
 
@@ -183,10 +197,10 @@ public class DialogController extends JDialog {
      * switch back to the sign-in panel, or may be to cancel.
      * @param panel that clicked cancel.
      */
-    void cancel(JPanel panel) {
-        if (panel == signInPanel) {
+    void cancel(DialogPanel panel) {
+        if (panel.panel == Panels.SignInPanel) {
             setVisible(false);
         }
-        activateCard(SIGNIN_CARD);
+        activateCard(Panels.SignInPanel);
     }
 }

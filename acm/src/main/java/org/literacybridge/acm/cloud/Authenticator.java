@@ -13,6 +13,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 import org.literacybridge.acm.cloud.AuthenticationDialog.DialogController;
 import org.literacybridge.acm.cloud.cognito.AuthenticationHelper;
 import org.literacybridge.acm.cloud.cognito.CognitoHelper;
@@ -28,13 +29,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
+import static java.util.Arrays.stream;
 import static javax.swing.JOptionPane.QUESTION_MESSAGE;
 
 /**
@@ -67,6 +71,7 @@ public class Authenticator {
 
     private String userName;
     private String userEmail;
+    private Map<String,String> userPrograms;
 
     // Cached helpers. Ones not used internally are lazy allocated.
     private IdentityPersistence identityPersistence;
@@ -138,7 +143,7 @@ public class Authenticator {
             return this==SUCCESS || this==CACHED_OFFLINE || this==OFFLINE;
         }
     }
-    public enum SigninOptions {OFFLINE_EMAIL_CHOICE}
+    public enum SigninOptions {OFFLINE_EMAIL_CHOICE, CHOOSE_PROGRAM}
 
     /**
      * Determine who the user is. If we can access an authentication server, the user must
@@ -181,6 +186,11 @@ public class Authenticator {
                 authenticationInfo.forEach(props::put);
                 identityPersistence.saveSignInDetails(userName, userEmail, password, props);
                 signinResult = SigninResult.SUCCESS;
+
+                if (authenticationInfo.containsKey("programs")) {
+                    userPrograms = parseProgramList(authenticationInfo.get("programs"));
+                    System.out.println(userPrograms);
+                }
             } else if (cognitoInterface.isSdkClientException()) {
                 // Couldn't authenticate; network problem; fall back to offline authentication scheme
                 onlineAuthentication = false;
@@ -206,15 +216,30 @@ public class Authenticator {
                 userEmail = savedSignInDetails.getMiddle();
                 authenticationInfo = identityPersistence.getExtraProperties();
                 signinResult = SigninResult.CACHED_OFFLINE;
+                if (authenticationInfo.containsKey("programs")) {
+                    userPrograms = parseProgramList(authenticationInfo.get("programs"));
+                }
             } else {
                 userName = email;
                 userEmail = email;
                 signinResult = SigninResult.OFFLINE;
             }
         }
+        if (options.contains(SigninOptions.CHOOSE_PROGRAM)) {
+            
+        }
+
         return signinResult;
     }
 
+    private Map<String,String> parseProgramList(String list) {
+        Map<String,String> result;
+        String[] programs = list.split(";");
+        result = stream(programs)
+            .map(s -> s.split(":"))
+            .collect(Collectors.toMap(e -> e[0], e -> e[1]));
+        return result;
+    }
 
     /**
      * Signs out. Not used.
