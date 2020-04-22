@@ -26,8 +26,8 @@ public class SignUpPanel extends DialogPanel {
     private final JButton createAccount;
     private final JButton haveCode;
 
-    public SignUpPanel(DialogController dialogController, DialogController.Panels panel) {
-        super(dialogController, DIALOG_TITLE, panel);
+    public SignUpPanel(WelcomeDialog welcomeDialog, WelcomeDialog.Panels panel) {
+        super(welcomeDialog, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
         // The GUI
         dialogPanel.setLayout(new GridBagLayout());
@@ -119,31 +119,20 @@ public class SignUpPanel extends DialogPanel {
         if (createAccount.isEnabled()) onCreate(null);
     }
 
-    String getUsername() {
-        return usernameField.getText();
-    }
-    /**
-     * Gets the password and the state of "show password".
-     * @return a Triple of password, allow show, do show.
-     */
-    PasswordInfo getPassword() {
-        return new PasswordInfo(passwordField1.getText(),
-            showPassword.isEnabled(), showPassword.isSelected());
-    }
-
     private void onCreate(ActionEvent actionEvent) {
-        dialogController.clearMessage();
-        String signUpResult = dialogController.cognitoInterface.signUpUser(usernameField.getText(),
+        welcomeDialog.clearMessage();
+        String signUpResult = welcomeDialog.cognitoInterface.signUpUser(usernameField.getText(),
                 passwordField1.getText(),
                 emailField.getText(),
                 phoneNumberField.getText());
 
         if (signUpResult != null) {
-            dialogController.setMessage(signUpResult);
+            welcomeDialog.setMessage(signUpResult);
             return;
         }
-
-        dialogController.gotoConfirmationCard();
+        welcomeDialog.setUsername(usernameField.getText());
+        welcomeDialog.setPassword(passwordField1.getText());
+        welcomeDialog.gotoConfirmationCard();
     }
 
     /**
@@ -151,11 +140,11 @@ public class SignUpPanel extends DialogPanel {
      * @param actionEvent is unused
      */
     private void haveCode(ActionEvent actionEvent) {
-        dialogController.gotoConfirmationCard();
+        welcomeDialog.gotoConfirmationCard();
     }
 
     void onCancel(ActionEvent actionEvent) {
-        dialogController.cancel(this);
+        cancel();
     }
 
     /**

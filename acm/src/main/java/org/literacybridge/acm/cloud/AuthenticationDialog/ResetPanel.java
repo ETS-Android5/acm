@@ -24,8 +24,8 @@ public class ResetPanel extends DialogPanel {
     private final PlaceholderTextField resetCode;
     private final JButton changePassword;
 
-    public ResetPanel(DialogController dialogController, DialogController.Panels panel) {
-        super(dialogController, DIALOG_TITLE, panel);
+    public ResetPanel(WelcomeDialog welcomeDialog, WelcomeDialog.Panels panel) {
+        super(welcomeDialog, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
 
         // The GUI
@@ -102,24 +102,15 @@ public class ResetPanel extends DialogPanel {
         addComponentListener(componentAdapter);
     }
 
-    /**
-     * Gets the password and the state of "show password".
-     * @return a Triple of password, allow show, do show.
-     */
-    PasswordInfo getPassword() {
-        return new PasswordInfo(passwordField1.getText(),
-            showPassword.isEnabled(), showPassword.isSelected());
-    }
-
-
     void onCancel(ActionEvent actionEvent) {
-        dialogController.cancel(this);
+        cancel();
     }
 
     private void onOk(ActionEvent actionEvent) {
         // Unfortunately, cognito doesn't return any success/failure status on this call.
-        dialogController.cognitoInterface.updatePassword(usernameField.getText(), passwordField1.getText(), resetCode.getText());
-        dialogController.ok(this);
+        welcomeDialog.cognitoInterface.updatePassword(usernameField.getText(), passwordField1.getText(), resetCode.getText());
+        welcomeDialog.setPassword(passwordField1.getText());
+        ok();
     }
 
     /**
@@ -127,16 +118,14 @@ public class ResetPanel extends DialogPanel {
      */
     @Override
     void onShown() {
-        String username = dialogController.getUsername();
-        usernameField.setText(username);
+        usernameField.setText(welcomeDialog.getUsername());
         passwordField1.setText(null);
         passwordField2.setText(null);
         showPassword.setSelected(false);
         onShowPassword(null);
     }
 
-
-    /**
+   /**
      * As the user types into various text boxes, sets the mismatch warning and enables/disables
      * the "Change" button as appropriate.
      */

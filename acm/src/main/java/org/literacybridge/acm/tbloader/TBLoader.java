@@ -85,6 +85,7 @@ import static java.lang.Math.max;
 import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 import static org.literacybridge.acm.Constants.TBLoadersLogDir;
 import static org.literacybridge.acm.Constants.TbCollectionWorkDir;
+import static org.literacybridge.acm.cloud.Authenticator.SigninOptions.CHOOSE_PROGRAM;
 import static org.literacybridge.acm.cloud.Authenticator.SigninOptions.OFFLINE_EMAIL_CHOICE;
 import static org.literacybridge.acm.gui.util.UIUtils.UiOptions.TOP_THIRD;
 import static org.literacybridge.core.tbloader.TBLoaderConstants.ISO8601;
@@ -346,7 +347,7 @@ public class TBLoader extends JFrame {
      */
     private void authenticate() {
         Authenticator authInstance = Authenticator.getInstance();
-        Authenticator.SigninResult result = authInstance.getUserIdentity(this, OFFLINE_EMAIL_CHOICE);
+        Authenticator.SigninResult result = authInstance.getUserIdentity(this, OFFLINE_EMAIL_CHOICE, CHOOSE_PROGRAM);
         if (result == Authenticator.SigninResult.FAILURE) {
             JOptionPane.showMessageDialog(this,
                 "Authentication is required to use the TB-Loader.",

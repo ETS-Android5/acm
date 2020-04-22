@@ -7,16 +7,22 @@ import java.awt.event.ComponentEvent;
 
 class DialogPanel extends JPanel {
 
-    final DialogController dialogController;
-    final DialogController.Panels panel;
+    final WelcomeDialog welcomeDialog;
+    final WelcomeDialog.Panels panel;
     private final String dialogTitle;
 
-    DialogPanel(DialogController dialogController, String dialogTitle, DialogController.Panels panel) {
-        this.dialogController = dialogController;
+    DialogPanel(WelcomeDialog welcomeDialog,
+        String dialogTitle,
+        WelcomeDialog.Panels panel) {
+        this.welcomeDialog = welcomeDialog;
         this.dialogTitle = dialogTitle;
         this.panel = panel;
 
         addComponentListener(componentAdapter);
+    }
+
+    DialogPanel(WelcomeDialog welcomeDialog, WelcomeDialog.Panels panel) {
+        this(welcomeDialog, "Authentication", panel);
     }
 
     /**
@@ -25,11 +31,14 @@ class DialogPanel extends JPanel {
     ComponentAdapter componentAdapter = new ComponentAdapter() {
         @Override
         public void componentShown(ComponentEvent evt) {
-            dialogController.setTitle(dialogTitle);
-            onShown();
+            welcomeDialog.setTitle(dialogTitle);
+//            onShown();
         }
     };
 
+    /**
+     * Called when the card is shown.
+     */
     void onShown() {
         // Override as needed
     }
@@ -42,21 +51,12 @@ class DialogPanel extends JPanel {
         // Override as needed
     }
 
-    /**
-     * Apache made the ImmutableTriple final, so we can't provide a reasonably named alias.
-     *
-     * I wonder what they were thinking?
-     */
-    static class PasswordInfo  {
-        public final String password;
-        public final Boolean showEnabled;
-        public final Boolean showSelected;
-
-        public PasswordInfo(String password, Boolean showEnabled, Boolean showSelected) {
-            this.password = password;
-            this.showEnabled = showEnabled;
-            this.showSelected = showSelected;
-        }
+    void ok() {
+        welcomeDialog.ok(this);
     }
+    void cancel() {
+        welcomeDialog.cancel(this);
+    }
+
 
 }

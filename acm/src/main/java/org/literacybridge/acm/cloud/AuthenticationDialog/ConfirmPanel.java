@@ -14,12 +14,11 @@ import static org.literacybridge.acm.gui.Assistant.AssistantPage.getGBC;
 public class ConfirmPanel extends DialogPanel {
     private static final String DIALOG_TITLE = "Create User ID";
 
-    private String username;
     private final PlaceholderTextField confirmationField;
     private final JButton confirm;
 
-    public ConfirmPanel(DialogController dialogController, DialogController.Panels panel) {
-        super(dialogController, DIALOG_TITLE, panel);
+    public ConfirmPanel(WelcomeDialog welcomeDialog, WelcomeDialog.Panels panel) {
+        super(welcomeDialog, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
 
         // The GUI
@@ -69,16 +68,16 @@ public class ConfirmPanel extends DialogPanel {
     private void onOk(ActionEvent actionEvent) {
         // Unfortunately, cognito doesn't return any success/failure status on this call.
         @SuppressWarnings("unused")
-        String result = dialogController.cognitoInterface.verifyAccessCode(username, confirmationField.getText());
-        dialogController.ok(this);
+        String result = welcomeDialog.cognitoInterface.verifyAccessCode(welcomeDialog.getUsername(), confirmationField.getText());
+        ok();
     }
 
     private void onResend(@SuppressWarnings("unused") ActionEvent actionEvent) {
-        dialogController.cognitoInterface.resendAccessCode(username);
+        welcomeDialog.cognitoInterface.resendAccessCode(welcomeDialog.getUsername());
     }
 
     void onCancel(ActionEvent actionEvent) {
-        dialogController.cancel(this);
+        cancel();
     }
 
     /**
@@ -86,7 +85,6 @@ public class ConfirmPanel extends DialogPanel {
      */
     @Override
     void onShown() {
-        ConfirmPanel.this.username = dialogController.getNewUsername();
         confirmationField.setText(null);
     }
 

@@ -27,8 +27,8 @@ public class SignInPanel extends DialogPanel {
     private final JCheckBox showPassword;
     private final JCheckBox rememberMe;
 
-    public SignInPanel(DialogController dialogController, DialogController.Panels panel) {
-        super(dialogController, DIALOG_TITLE, panel);
+    public SignInPanel(WelcomeDialog welcomeDialog, WelcomeDialog.Panels panel) {
+        super(welcomeDialog, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
         // The GUI
         dialogPanel.setLayout(new GridBagLayout());
@@ -93,37 +93,19 @@ public class SignInPanel extends DialogPanel {
         addComponentListener(componentAdapter);
     }
 
+    @Override
+    void onShown() {
+        super.onShown();
+        usernameField.setText(welcomeDialog.getUsername());
+        passwordField.setText(welcomeDialog.getPassword());
+        showPassword.setSelected(false);
+        onShowPassword(null);
+        passwordField.setText(welcomeDialog.getPassword());
+        showPassword.setEnabled(!welcomeDialog.isSavedPassword());
+    }
+
     public boolean isRememberMeSelected() {
         return rememberMe.isSelected();
-    }
-
-    String getUsername() {
-        return usernameField.getText();
-    }
-
-    String getPassword() {
-        return passwordField.getText();
-    }
-
-    void setUsername(String username) {
-        usernameField.setText(username);
-    }
-
-    /**
-     * Sets a password as it was entered on a "reset" panel or a "signup" panel. This also
-     * includes the "show password" state.
-     * @param pwd with "show password" state.
-     */
-    void setPassword(PasswordInfo pwd) {
-        passwordField.setText(pwd.getLeft());
-        if (pwd.getMiddle()) {
-            showPassword.setEnabled(true);
-            showPassword.setSelected(pwd.getRight());
-        } else {
-            showPassword.setEnabled(false);
-            showPassword.setSelected(false);
-        }
-        onShowPassword(null);
     }
 
     @Override
@@ -136,7 +118,7 @@ public class SignInPanel extends DialogPanel {
      * @param actionEvent is ignored.
      */
     private void onSignUp(ActionEvent actionEvent) {
-        dialogController.gotoSignUpCard();
+        welcomeDialog.gotoSignUpCard();
     }
 
     /**
@@ -145,14 +127,14 @@ public class SignInPanel extends DialogPanel {
      */
     private void onForgotPassword(ActionEvent actionEvent) {
         if (StringUtils.isEmpty(usernameField.getText())) {
-            dialogController.setMessage("Please enter the user id or email for which to reset the password.");
+            welcomeDialog.setMessage("Please enter the user id or email for which to reset the password.");
             return;
         }
-        dialogController.clearMessage();
+        welcomeDialog.clearMessage();
         // Comment out next line to NOT reset the password, to test the GUI aspect of the reset dialog.
-        dialogController.cognitoInterface.resetPassword(usernameField.getText());
+        welcomeDialog.cognitoInterface.resetPassword(usernameField.getText());
 
-        dialogController.gotoResetCard();
+        welcomeDialog.gotoResetCard();
     }
 
     /**
@@ -168,8 +150,8 @@ public class SignInPanel extends DialogPanel {
      * @param actionEvent is ignored.
      */
     private void onSignin(ActionEvent actionEvent) {
-        UIUtils.runWithWaitSpinner(dialogController,
-            () -> dialogController.cognitoInterface.authenticate(usernameField.getText(), passwordField.getText()),
+        UIUtils.runWithWaitSpinner(welcomeDialog,
+            () -> welcomeDialog.cognitoInterface.authenticate(usernameField.getText(), passwordField.getText()),
             this::onSigninReturned,
             TOP_THIRD);
     }
@@ -180,12 +162,18 @@ public class SignInPanel extends DialogPanel {
     private void onSigninReturned() {
         // ok and cancel do the same thing, but one succeeded and one failed, so it is best to
         // keep them separate, in case this semantic changes in the future.
-        if (dialogController.cognitoInterface.isAuthenticated()) {
-            dialogController.ok(this);
-        } else if(dialogController.cognitoInterface.isSdkClientException()) {
-            dialogController.cancel(this);
+        if (welcomeDialog.cognitoInterface.isAuthenticated()) {
+            // Authenticated with Cognito.
+            if (rememberMe.isSelected()) {
+                welcomeDialog.setPassword(passwordField.getText());
+            }
+            ok();
+        } else if(welcomeDialog.cognitoInterface.isSdkClientException()) {
+            // No connectivity. Can't sign in with Cognito.
+            welcomeDialog.SdkClientException(this);
         } else {
-            dialogController.setMessage(dialogController.cognitoInterface.getAuthMessage());
+            // Probably bad user / password. Inform user, let them try again.
+            welcomeDialog.setMessage(welcomeDialog.cognitoInterface.getAuthMessage());
         }
     }
 
@@ -230,18 +218,4 @@ public class SignInPanel extends DialogPanel {
         }
     };
 
-    /**
-     * Sets the user name and password from previously saved credentials. The "show password"
-     * field will be de-selected and disabled.
-     * @param username to set.
-     * @param password for the user name.
-     */
-    void setSavedCredentials(String username, String password) {
-        rememberMe.setSelected(true);
-        usernameField.setText(username);
-        showPassword.setSelected(false);
-        showPassword.setEnabled(false);
-        passwordField.setMaskChar('*');
-        passwordField.setText(password);
-    }
 }
