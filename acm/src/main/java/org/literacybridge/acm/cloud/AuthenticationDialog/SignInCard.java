@@ -18,7 +18,7 @@ import java.awt.event.KeyListener;
 import static org.literacybridge.acm.gui.Assistant.AssistantPage.getGBC;
 import static org.literacybridge.acm.gui.util.UIUtils.UiOptions.TOP_THIRD;
 
-public class SignInPanel extends DialogPanel {
+public class SignInCard extends CardContent {
     private static final String DIALOG_TITLE = "Amplio Sign In";
 
     private final JButton signIn;
@@ -27,7 +27,7 @@ public class SignInPanel extends DialogPanel {
     private final JCheckBox showPassword;
     private final JCheckBox rememberMe;
 
-    public SignInPanel(WelcomeDialog welcomeDialog, WelcomeDialog.Panels panel) {
+    public SignInCard(WelcomeDialog welcomeDialog, WelcomeDialog.Cards panel) {
         super(welcomeDialog, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
         // The GUI
@@ -181,7 +181,9 @@ public class SignInPanel extends DialogPanel {
      * Sets the enabled state of controls, based on which other controls have contents.
      */
     private void enableControls() {
-        signIn.setEnabled(usernameField.getText().length() > 0 && passwordField.getText().length() > 0);
+        boolean enableSignIn = (usernameField.getText().length() > 0 && passwordField.getText().length() > 0);
+        signIn.setEnabled(enableSignIn);
+        getRootPane().setDefaultButton(enableSignIn?signIn:null);
         if (passwordField.getText().length() == 0) showPassword.setEnabled(true);
     }
 

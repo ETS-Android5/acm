@@ -24,8 +24,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import static java.util.Arrays.stream;
-import static org.literacybridge.acm.cloud.AuthenticationDialog.WelcomeDialog.Panels.*;
+import static org.literacybridge.acm.cloud.AuthenticationDialog.WelcomeDialog.Cards.ConfirmCard;
+import static org.literacybridge.acm.cloud.AuthenticationDialog.WelcomeDialog.Cards.EmailCard;
+import static org.literacybridge.acm.cloud.AuthenticationDialog.WelcomeDialog.Cards.ProgramCard;
+import static org.literacybridge.acm.cloud.AuthenticationDialog.WelcomeDialog.Cards.ResetCard;
+import static org.literacybridge.acm.cloud.AuthenticationDialog.WelcomeDialog.Cards.SignInCard;
+import static org.literacybridge.acm.cloud.AuthenticationDialog.WelcomeDialog.Cards.SignUpCard;
 import static org.literacybridge.acm.gui.util.UIUtils.UiOptions.TOP_THIRD;
 
 public class WelcomeDialog extends JDialog {
@@ -33,9 +37,9 @@ public class WelcomeDialog extends JDialog {
     private String email;
     private String password;
     private boolean isSavedPassword;
+    private String program;
 
     private boolean success = false;
-    private boolean offlineEmailChoice = true;
 
     public boolean isSuccess() {
         return success;
@@ -53,51 +57,59 @@ public class WelcomeDialog extends JDialog {
         return email;
     }
 
-    public void setEmail(String email) {
+    public String getProgram() {
+        return program;
+    }
+
+    void setEmail(String email) {
         this.email = email;
     }
 
-    public void setPassword(String password) {
+    void setPassword(String password) {
         this.password = password;
         this.isSavedPassword = false;
+    }
+
+    void setProgram(String program) {
+        this.program = program;
     }
 
     public boolean isSavedPassword() {
         return isSavedPassword;
     }
 
-    enum Panels {
-        NullPanel(100, DialogPanel::new),
-        SignInPanel(260, SignInPanel::new),
-        SignUpPanel(320, SignUpPanel::new),
-        ResetPanel(280, ResetPanel::new),
-        ConfirmPanel(450, ConfirmPanel::new),
-        EmailPanel(130, EmailPanel::new),
-        ProgramPanel(450, ProgramPanel::new);
+    enum Cards {
+        NullCard(100, CardContent::new),
+        SignInCard(260, SignInCard::new),
+        SignUpCard(320, SignUpCard::new),
+        ResetCard(280, ResetCard::new),
+        ConfirmCard(450, ConfirmCard::new),
+        EmailCard(130, EmailCard::new),
+        ProgramCard(450, ProgramCard::new);
 
         int minimumHeight;
-        BiFunction<WelcomeDialog, Panels, DialogPanel> ctor;
+        BiFunction<WelcomeDialog, Cards, CardContent> ctor;
 
-        Panels(int minimumHeight, BiFunction<WelcomeDialog, Panels, DialogPanel> ctor) {
+        Cards(int minimumHeight, BiFunction<WelcomeDialog, Cards, CardContent> ctor) {
             this.minimumHeight = minimumHeight;
             this.ctor = ctor;
         }
     }
 
     private final CardLayout cardLayout;
-    private final JPanel cardPanel;
+    private final JPanel cardsContainer;
 
     private JLabel authMessage;
-    private final Map<Panels,DialogPanel> cardPanelMap = new HashMap<>();
-    private DialogPanel currentPanel = null;
+    private final Map<Cards, CardContent> cardMap = new HashMap<>();
+    private CardContent currentCard;
 
     final Authenticator.CognitoInterface cognitoInterface;
     final Set<Authenticator.SigninOptions> options;
 
-    private void makePanel(Panels panel) {
-        DialogPanel newPanel = panel.ctor.apply(this, panel);
-        cardPanel.add(panel.name(), newPanel);
-        cardPanelMap.put(panel, newPanel);
+    private void makePanel(Cards card) {
+        CardContent newCard = card.ctor.apply(this, card);
+        cardsContainer.add(card.name(), newCard);
+        cardMap.put(card, newCard);
     }
 
     public WelcomeDialog(Window owner, Set<Authenticator.SigninOptions> options, Authenticator.CognitoInterface cognitoInterface) {
@@ -116,26 +128,26 @@ public class WelcomeDialog extends JDialog {
         borderPanel.setLayout(new BorderLayout());
 
         cardLayout = new CardLayout();
-        cardPanel = new JPanel(cardLayout);
-        borderPanel.add(cardPanel, BorderLayout.CENTER);
-        cardPanel.setBorder(new EmptyBorder(6, 6, 6, 6));
+        cardsContainer = new JPanel(cardLayout);
+        borderPanel.add(cardsContainer, BorderLayout.CENTER);
+        cardsContainer.setBorder(new EmptyBorder(6, 6, 6, 6));
 
         // Create the panels, add them to the cardPanel, and to the dialogPanelMap.
         if (cognitoInterface.isOnline()) {
-            makePanel(SignInPanel);
+            makePanel(SignInCard);
         } else {
-            makePanel(EmailPanel);
+            makePanel(EmailCard);
         }
-        currentPanel = new ArrayList<>(cardPanelMap.values()).get(0);
+        currentCard = new ArrayList<>(cardMap.values()).get(0);
 //        stream(Panels.values()).forEach(this::makePanel);
 
-        ActionListener escListener = e -> currentPanel.onCancel(e);
+        ActionListener escListener = e -> currentCard.onCancel(e);
 
         getRootPane().registerKeyboardAction(escListener,
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
             JComponent.WHEN_IN_FOCUSED_WINDOW);
 
-        ActionListener enterListener = e -> currentPanel.onEnter();
+        ActionListener enterListener = e -> currentCard.onEnter();
 
         getRootPane().registerKeyboardAction(enterListener,
             KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0),
@@ -151,38 +163,38 @@ public class WelcomeDialog extends JDialog {
         });
 
         // Center horizontally and in the top 2/3 of screen.
-        setMinimumSize(new Dimension(450, currentPanel.panel.minimumHeight));
+        setMinimumSize(new Dimension(450, currentCard.panel.minimumHeight));
         UIUtils.centerWindow(this, TOP_THIRD);
         setAlwaysOnTop(true);
     }
 
     private void dialogShown() {
-        currentPanel.onShown();
+        currentCard.onShown();
     }
 
 
 
-    private SignInPanel signInPanel() {
-        return ((SignInPanel)cardPanelMap.get(SignInPanel));
+    private org.literacybridge.acm.cloud.AuthenticationDialog.SignInCard signInCard() {
+        return ((org.literacybridge.acm.cloud.AuthenticationDialog.SignInCard) cardMap.get(SignInCard));
     }
-    private SignUpPanel signUpPanel() {
-        return ((SignUpPanel)cardPanelMap.get(SignUpPanel));
-    }
-    private ConfirmPanel confirmPanel() {
-        return ((ConfirmPanel)cardPanelMap.get(ConfirmPanel));
-    }
-    private ResetPanel resetPanel() {
-        return ((ResetPanel)cardPanelMap.get(ResetPanel));
-    }
-    private EmailPanel emailPanel() {
-        return ((EmailPanel)cardPanelMap.get(EmailPanel));
-    }
-    private ProgramPanel programPanel() {
-        return ((ProgramPanel)cardPanelMap.get(ProgramPanel));
-    }
+//    private org.literacybridge.acm.cloud.AuthenticationDialog.SignUpCard signUpCard() {
+//        return ((org.literacybridge.acm.cloud.AuthenticationDialog.SignUpCard) cardMap.get(SignUpCard));
+//    }
+//    private org.literacybridge.acm.cloud.AuthenticationDialog.ConfirmCard confirmCard() {
+//        return ((org.literacybridge.acm.cloud.AuthenticationDialog.ConfirmCard) cardMap.get(ConfirmCard));
+//    }
+//    private org.literacybridge.acm.cloud.AuthenticationDialog.ResetCard resetCard() {
+//        return ((org.literacybridge.acm.cloud.AuthenticationDialog.ResetCard) cardMap.get(ResetCard));
+//    }
+//    private org.literacybridge.acm.cloud.AuthenticationDialog.EmailCard emailCard() {
+//        return ((org.literacybridge.acm.cloud.AuthenticationDialog.EmailCard) cardMap.get(EmailCard));
+//    }
+//    private org.literacybridge.acm.cloud.AuthenticationDialog.ProgramCard programCard() {
+//        return ((org.literacybridge.acm.cloud.AuthenticationDialog.ProgramCard) cardMap.get(ProgramCard));
+//    }
 
     public boolean isRememberMeSelected() {
-        return signInPanel().isRememberMeSelected();
+        return signInCard().isRememberMeSelected();
     }
 
     public String getPassword() {
@@ -196,24 +208,24 @@ public class WelcomeDialog extends JDialog {
         this.isSavedPassword = true;
     }
 
-    private void activateCard(Panels newPanel) {
-        if (!cardPanelMap.containsKey(newPanel)) {
+    private void activateCard(Cards newPanel) {
+        if (!cardMap.containsKey(newPanel)) {
             makePanel(newPanel);
         }
-        int deltaFromNominal = getHeight()-currentPanel.panel.minimumHeight;
+        int deltaFromNominal = getHeight()- currentCard.panel.minimumHeight;
         System.out.printf("transition card %s -> %s, cur height: %d, cur min: %d, new min: %d, delta: %d\n",
-            currentPanel.panel.name(), newPanel.name(),
+            currentCard.panel.name(), newPanel.name(),
             getHeight(),
-            currentPanel.panel.minimumHeight,
+            currentCard.panel.minimumHeight,
             newPanel.minimumHeight,
             deltaFromNominal);
         if (getHeight() != newPanel.minimumHeight+deltaFromNominal) {
             setMinimumSize(new Dimension(getWidth(), newPanel.minimumHeight));
             setSize(new Dimension(getWidth(), newPanel.minimumHeight+deltaFromNominal));
         }
-        currentPanel = cardPanelMap.get(newPanel);
-        cardLayout.show(cardPanel, newPanel.name());
-        currentPanel.onShown();
+        currentCard = cardMap.get(newPanel);
+        cardLayout.show(cardsContainer, newPanel.name());
+        currentCard.onShown();
     }
 
     /**
@@ -236,20 +248,20 @@ public class WelcomeDialog extends JDialog {
     }
 
     void gotoSignUpCard() {
-        activateCard(SignUpPanel);
+        activateCard(SignUpCard);
     }
 
     void gotoResetCard() {
-        activateCard(ResetPanel);
+        activateCard(ResetCard);
     }
 
     void gotoConfirmationCard() {
-        activateCard(ConfirmPanel);
+        activateCard(ConfirmCard);
     }
 
     void gotoProgramSelection() {
         if (options.contains(Authenticator.SigninOptions.CHOOSE_PROGRAM)) {
-            activateCard(ProgramPanel);
+            activateCard(ProgramCard);
         } else {
             success = true;
             setVisible(false);
@@ -260,19 +272,19 @@ public class WelcomeDialog extends JDialog {
      * Called by the sub-panels when user clicks OK on the panel.
      * @param senderPanel that clicked OK.
      */
-    void ok(DialogPanel senderPanel) {
+    void ok(CardContent senderPanel) {
         switch (senderPanel.panel) {
-        case SignInPanel:
-        case EmailPanel:
+        case SignInCard:
+        case EmailCard:
             gotoProgramSelection();
             break;
 
-        case ResetPanel:
-        case ConfirmPanel:
-            activateCard(SignInPanel);
+        case ResetCard:
+        case ConfirmCard:
+            activateCard(SignInCard);
             break;
 
-        case ProgramPanel:
+        case ProgramCard:
             success = true;
             setVisible(false);
             break;
@@ -284,31 +296,29 @@ public class WelcomeDialog extends JDialog {
      * switch back to the sign-in panel, or may be to cancel.
      * @param senderPanel that clicked cancel.
      */
-    void cancel(DialogPanel senderPanel) {
+    void cancel(CardContent senderPanel) {
         switch (senderPanel.panel) {
-        case SignInPanel:
+        case SignInCard:
+
+        case ConfirmCard:
+        case EmailCard:
+        case ProgramCard:
             setVisible(false);
             break;
 
-        case SignUpPanel:
-        case ResetPanel:
-            activateCard(SignInPanel);
-            break;
-
-        case ConfirmPanel:
-        case EmailPanel:
-        case ProgramPanel:
-            setVisible(false);
+        case SignUpCard:
+        case ResetCard:
+            activateCard(SignInCard);
             break;
         }
     }
 
-    void SdkClientException(DialogPanel senderPanel) {
-        if (senderPanel.panel == SignInPanel) {
+    void SdkClientException(CardContent senderPanel) {
+        if (senderPanel.panel == SignInCard) {
             if (options.contains(Authenticator.SigninOptions.OFFLINE_EMAIL_CHOICE)) {
-                activateCard(EmailPanel);
+                activateCard(EmailCard);
             } else if (StringUtils.isNotBlank(email)) {
-                activateCard(ProgramPanel);
+                activateCard(ProgramCard);
             } else {
                 // Ends the dialog, with failure.
                 setVisible(false);

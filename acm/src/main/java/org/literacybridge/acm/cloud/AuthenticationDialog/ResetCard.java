@@ -13,7 +13,7 @@ import java.awt.event.ActionEvent;
 
 import static org.literacybridge.acm.gui.Assistant.AssistantPage.getGBC;
 
-public class ResetPanel extends DialogPanel {
+public class ResetCard extends CardContent {
     private final static String DIALOG_TITLE = "Reset Password";
 
     private final PlaceholderTextField usernameField;
@@ -24,7 +24,7 @@ public class ResetPanel extends DialogPanel {
     private final PlaceholderTextField resetCode;
     private final JButton changePassword;
 
-    public ResetPanel(WelcomeDialog welcomeDialog, WelcomeDialog.Panels panel) {
+    public ResetCard(WelcomeDialog welcomeDialog, WelcomeDialog.Cards panel) {
         super(welcomeDialog, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
 

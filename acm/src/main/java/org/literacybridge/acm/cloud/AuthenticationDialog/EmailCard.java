@@ -14,14 +14,14 @@ import java.awt.event.KeyListener;
 
 import static org.literacybridge.acm.gui.Assistant.AssistantPage.getGBC;
 
-public class EmailPanel extends DialogPanel {
+public class EmailCard extends CardContent {
     private static final String DIALOG_TITLE = "Enter email address";
 
     private final JButton okButton;
     private final PlaceholderTextField emailField;
 
-    public EmailPanel(WelcomeDialog welcomeDialog,
-        WelcomeDialog.Panels panel)
+    public EmailCard(WelcomeDialog welcomeDialog,
+        WelcomeDialog.Cards panel)
     {
         super(welcomeDialog, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
@@ -87,12 +87,8 @@ public class EmailPanel extends DialogPanel {
     };
 
     /**
-     * We don't enable "showPassword" for saved passwords, so when a saved password is used,
-     * the control is disabled. If the old password is deleted, we re-enable the control.
-     *
-     * Also used to enable the sign-in button if a user id or password is pasted into the
-     * corresponding field (because we're not listening to that key, we'd otherwise miss the
-     * presence of the user id or password).
+     * Used to enable the ok button if an email address is pasted into the email field (because
+     * we're not listening to that key, we'd otherwise miss the presence of the email address).
      */
     @SuppressWarnings("FieldCanBeLocal")
     private final DocumentListener textDocumentListener = new DocumentListener() {

@@ -71,6 +71,7 @@ public class Authenticator {
     private String userName;
     private String userEmail;
     private Map<String, String> userPrograms;
+    private String userProgram;
 
     // Cached helpers. Ones not used internally are lazy allocated.
     private final IdentityPersistence identityPersistence;
@@ -119,6 +120,10 @@ public class Authenticator {
         return userEmail;
     }
 
+    public String getUserProgram() {
+        return userProgram;
+    }
+
     public TbSrnHelper getTbSrnHelper() {
         if (tbSrnHelper == null) {
             if (!signinResult.signedIn()) {
@@ -149,7 +154,7 @@ public class Authenticator {
         }
     }
 
-    public enum SigninOptions {OFFLINE_EMAIL_CHOICE, CHOOSE_PROGRAM}
+    public enum SigninOptions {OFFLINE_EMAIL_CHOICE, CHOOSE_PROGRAM, LOCAL_DATA_ONLY}
 
     /**
      * Determine who the user is. If we can access an authentication server, the user must
@@ -193,6 +198,7 @@ public class Authenticator {
                 Map<String, String> props = new HashMap<>();
                 authenticationInfo.forEach(props::put);
                 identityPersistence.saveSignInDetails(userName, userEmail, password, props);
+                userProgram = dialog.getProgram();
                 signinResult = SigninResult.SUCCESS;
             } else {
                 // Couldn't get to Cognito; only have user's email.
@@ -210,6 +216,7 @@ public class Authenticator {
                     if (authenticationInfo.containsKey("programs")) {
                         userPrograms = parseProgramList(authenticationInfo.get("programs"));
                     }
+                    userProgram = dialog.getProgram();
                     signinResult = SigninResult.SUCCESS;
                 } else {
                     // If some new email with no saved details, use what we have.
@@ -453,6 +460,10 @@ public class Authenticator {
 
         public boolean isSdkClientException() {
             return authenticationResult != null && authenticationResult.isSdkClientException();
+        }
+
+        public Map<String, String> getPrograms() {
+            return userPrograms;
         }
 
         /**

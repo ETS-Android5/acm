@@ -13,7 +13,7 @@ import java.awt.event.ActionEvent;
 
 import static org.literacybridge.acm.gui.Assistant.AssistantPage.getGBC;
 
-public class SignUpPanel extends DialogPanel {
+public class SignUpCard extends CardContent {
     private static final String DIALOG_TITLE = "Create User ID";
 
     private final PlaceholderTextField usernameField;
@@ -26,7 +26,7 @@ public class SignUpPanel extends DialogPanel {
     private final JButton createAccount;
     private final JButton haveCode;
 
-    public SignUpPanel(WelcomeDialog welcomeDialog, WelcomeDialog.Panels panel) {
+    public SignUpCard(WelcomeDialog welcomeDialog, WelcomeDialog.Cards panel) {
         super(welcomeDialog, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
         // The GUI

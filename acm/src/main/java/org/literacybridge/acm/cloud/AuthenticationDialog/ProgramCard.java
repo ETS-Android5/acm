@@ -1,5 +1,6 @@
 package org.literacybridge.acm.cloud.AuthenticationDialog;
 
+import org.literacybridge.acm.cloud.Authenticator;
 import org.literacybridge.acm.config.ACMConfiguration;
 import org.literacybridge.acm.gui.Assistant.RoundedLineBorder;
 
@@ -13,11 +14,13 @@ import java.awt.event.FocusListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.literacybridge.acm.gui.Assistant.AssistantPage.redBorder;
 
-public class ProgramPanel extends DialogPanel {
+public class ProgramCard extends CardContent {
     private static final String DIALOG_TITLE = "Select Program";
 
     private JButton okButton;
@@ -26,11 +29,10 @@ public class ProgramPanel extends DialogPanel {
     private JCheckBox forceSandbox;
     private final JScrollPane choicesListScrollPane;
 
-    public ProgramPanel(WelcomeDialog welcomeDialog,
-        WelcomeDialog.Panels panel)
+    public ProgramCard(WelcomeDialog welcomeDialog,
+        WelcomeDialog.Cards panel)
     {
         super(welcomeDialog, DIALOG_TITLE, panel);
-        List<String> acmNames = ACMConfiguration.getInstance().getKnownAcms();
         JPanel dialogPanel = this;
         // The GUI
         dialogPanel.setLayout(new BorderLayout());
@@ -40,7 +42,6 @@ public class ProgramPanel extends DialogPanel {
 
         choicesList = new JList<>();
         choicesList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        choicesList.setListData(acmNames.toArray(new String[0]));
         choicesList.addListSelectionListener(this::listSelectionListener);
         choicesList.addFocusListener(listFocusListener);
         choicesList.addMouseListener(listMouseListener);
@@ -66,7 +67,7 @@ public class ProgramPanel extends DialogPanel {
         hbox.add(Box.createHorizontalGlue());
 
         okButton = new JButton("Ok");
-        okButton.addActionListener(e -> ok());
+        okButton.addActionListener(e -> onOk());
         okButton.setEnabled(false);
         hbox.add(okButton);
         hbox.add(Box.createHorizontalStrut(5));
@@ -82,6 +83,34 @@ public class ProgramPanel extends DialogPanel {
 
     @Override
     void onShown() {
+        // Build the list of ACM names from which to choose. The list depends on whether we're
+        // authenticated (not being authenticated is roughly equivalent to not having network
+        // access, so we give access to all local programs). The list also depends on the option
+        // LOCAL_DATA_ONLY, because the ACM can only work with local data.
+        //
+        List<String> acmNames;
+        if (welcomeDialog.cognitoInterface.isAuthenticated()) {
+            acmNames = new ArrayList<>(welcomeDialog.cognitoInterface.getPrograms().keySet());
+            if (welcomeDialog.options.contains(Authenticator.SigninOptions.LOCAL_DATA_ONLY)) {
+                List<String> localNames = ACMConfiguration.getInstance().getKnownAcms();
+                acmNames = acmNames.stream()
+                    .filter(p->localNames.contains(p))
+                    .collect(Collectors.toList());
+            }
+        } else {
+            acmNames = ACMConfiguration.getInstance().getKnownAcms();
+        }
+        choicesList.setListData(acmNames.toArray(new String[0]));
+    }
+
+    @Override
+    void onEnter() {
+        onOk();
+    }
+
+    void onOk() {
+        welcomeDialog.setProgram(getSelectedItem());
+        ok();
     }
 
     /**
@@ -102,9 +131,7 @@ public class ProgramPanel extends DialogPanel {
     private void listSelectionListener(@SuppressWarnings("unused") ListSelectionEvent listSelectionEvent) {
         boolean haveSelection = choicesList.getLeadSelectionIndex() >= 0;
         okButton.setEnabled(haveSelection);
-        if (haveSelection) {
-            getRootPane().setDefaultButton(okButton);
-        }
+        getRootPane().setDefaultButton(haveSelection?okButton:null);
         setListBorder();
     }
 

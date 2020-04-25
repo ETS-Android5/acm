@@ -284,19 +284,9 @@ public class TBLoader extends JFrame {
             applicationWindow.setIconImage(iconImage);
         }
 
-        // Set options that are controlled by project config file.
-        Properties config = ACMConfiguration.getInstance().getConfigPropertiesFor(newProject);
-        if (config != null) {
-            String valStr = config.getProperty("PACKAGE_CHOICE", "FALSE");
-            this.allowPackageChoice |= Boolean.parseBoolean(valStr);
-
-            valStr = config.getProperty("ALLOW_FORCE_SRN", "FALSE");
-            this.allowForceSrn |= Boolean.parseBoolean(valStr);
-
-            // TODO (TBLOADER_DROPBOX): remove when Dropbox completely de-implemented.
-            valStr = config.getProperty("TBLOADER_DROPBOX", "FALSE");
-            useDropbox = valStr.equalsIgnoreCase("true");
-        }
+        String valStr = ACMConfiguration.getInstance().getUserConfigurationItem("TBLOADER_DROPBOX", "FALSE");
+        // TODO (TBLOADER_DROPBOX): remove when Dropbox completely de-implemented.
+        useDropbox = valStr.equalsIgnoreCase("true");
 
         // TODO (TBLOADER_DROPBOX): remove if (...) when Dropbox completely de-implemented.
         if (!useDropbox) {
@@ -305,6 +295,17 @@ public class TBLoader extends JFrame {
             authenticate();
             startupTimer -= System.currentTimeMillis();
         }
+
+        // Set options that are controlled by project config file.
+        Properties config = ACMConfiguration.getInstance().getConfigPropertiesFor(newProject);
+        if (config != null) {
+            valStr = config.getProperty("PACKAGE_CHOICE", "FALSE");
+            this.allowPackageChoice |= Boolean.parseBoolean(valStr);
+
+            valStr = config.getProperty("ALLOW_FORCE_SRN", "FALSE");
+            this.allowForceSrn |= Boolean.parseBoolean(valStr);
+        }
+
         setDeviceIdAndPaths();
 
         // Initialized java logging, as well as operational logging.
@@ -358,6 +359,7 @@ public class TBLoader extends JFrame {
 
         TbSrnHelper srnHelper = authInstance.getTbSrnHelper();
         int n = srnHelper.prepareForAllocation();
+        newProject = authInstance.getUserProgram();
     }
 
     // TODO (TBLOADER_DROPBOX): clean up when Dropbox completely de-implemented.

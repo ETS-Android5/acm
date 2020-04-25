@@ -5,15 +5,15 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 
-class DialogPanel extends JPanel {
+class CardContent extends JPanel {
 
     final WelcomeDialog welcomeDialog;
-    final WelcomeDialog.Panels panel;
+    final WelcomeDialog.Cards panel;
     private final String dialogTitle;
 
-    DialogPanel(WelcomeDialog welcomeDialog,
+    CardContent(WelcomeDialog welcomeDialog,
         String dialogTitle,
-        WelcomeDialog.Panels panel) {
+        WelcomeDialog.Cards panel) {
         this.welcomeDialog = welcomeDialog;
         this.dialogTitle = dialogTitle;
         this.panel = panel;
@@ -21,7 +21,7 @@ class DialogPanel extends JPanel {
         addComponentListener(componentAdapter);
     }
 
-    DialogPanel(WelcomeDialog welcomeDialog, WelcomeDialog.Panels panel) {
+    CardContent(WelcomeDialog welcomeDialog, WelcomeDialog.Cards panel) {
         this(welcomeDialog, "Authentication", panel);
     }
 

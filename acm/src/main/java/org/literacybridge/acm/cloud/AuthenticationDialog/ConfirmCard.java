@@ -11,13 +11,13 @@ import java.awt.event.ActionEvent;
 
 import static org.literacybridge.acm.gui.Assistant.AssistantPage.getGBC;
 
-public class ConfirmPanel extends DialogPanel {
+public class ConfirmCard extends CardContent {
     private static final String DIALOG_TITLE = "Create User ID";
 
     private final PlaceholderTextField confirmationField;
     private final JButton confirm;
 
-    public ConfirmPanel(WelcomeDialog welcomeDialog, WelcomeDialog.Panels panel) {
+    public ConfirmCard(WelcomeDialog welcomeDialog, WelcomeDialog.Cards panel) {
         super(welcomeDialog, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
 

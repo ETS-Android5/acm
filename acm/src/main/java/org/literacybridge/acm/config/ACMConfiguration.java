@@ -341,6 +341,11 @@ public class ACMConfiguration {
         return uuid;
     }
 
+    public String getUserConfigurationItem(String name, String defaultValue) {
+        String value = UsersConfigurationProperties.getProperty(name);
+        return (value == null) ? defaultValue : value;
+    }
+
     private String getDeviceID() throws IOException {
         String value = UsersConfigurationProperties.getProperty(Constants.DEVICE_ID_PROP);
         if (value == null) {
