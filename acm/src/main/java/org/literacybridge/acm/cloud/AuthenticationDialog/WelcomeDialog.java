@@ -38,6 +38,7 @@ public class WelcomeDialog extends JDialog {
     private String password;
     private boolean isSavedPassword;
     private String program;
+    private boolean isSandboxSelected;
 
     private boolean success = false;
 
@@ -76,6 +77,13 @@ public class WelcomeDialog extends JDialog {
 
     public boolean isSavedPassword() {
         return isSavedPassword;
+    }
+
+    public boolean isSandboxSelected() {
+        return isSandboxSelected;
+    }
+    void setSandboxSelected(boolean sandboxSelected) {
+        isSandboxSelected = sandboxSelected;
     }
 
     enum Cards {

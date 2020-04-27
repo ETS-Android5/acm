@@ -524,6 +524,15 @@ public class ACMConfiguration {
     }
 
     /**
+     * ~/LiteracyBridge/TB-Loaders
+     * This directory may contain one or more local TB-Loader directories for programs.
+     * @return The directory.
+     */
+    public File getLocalTbLoadersDir() {
+        return new File(getApplicationHomeDirectory(), Constants.TBLoadersHomeDir);
+    }
+
+    /**
      * ~/LiteracyBridge/TB-Loaders/{project}
      * This directory may contain a *.rev file, marking the locally installed deployment,
      * a content directory with deployments, a metadata directory with metadata, and/or a

@@ -63,7 +63,9 @@ public class ProgramCard extends CardContent {
     private JComponent setupButtons() {
         Box hbox = Box.createHorizontalBox();
         forceSandbox = new JCheckBox("Use demo mode");
-        hbox.add(forceSandbox);
+        if (welcomeDialog.options.contains(Authenticator.SigninOptions.OFFER_DEMO_MODE)) {
+            hbox.add(forceSandbox);
+        }
         hbox.add(Box.createHorizontalGlue());
 
         okButton = new JButton("Ok");
@@ -92,13 +94,13 @@ public class ProgramCard extends CardContent {
         if (welcomeDialog.cognitoInterface.isAuthenticated()) {
             acmNames = new ArrayList<>(welcomeDialog.cognitoInterface.getPrograms().keySet());
             if (welcomeDialog.options.contains(Authenticator.SigninOptions.LOCAL_DATA_ONLY)) {
-                List<String> localNames = ACMConfiguration.getInstance().getKnownAcms();
+                List<String> localNames = Authenticator.getInstance().getLocallyAvailablePrograms();
                 acmNames = acmNames.stream()
-                    .filter(p->localNames.contains(p))
+                    .filter(localNames::contains)
                     .collect(Collectors.toList());
             }
         } else {
-            acmNames = ACMConfiguration.getInstance().getKnownAcms();
+            acmNames = Authenticator.getInstance().getLocallyAvailablePrograms();
         }
         choicesList.setListData(acmNames.toArray(new String[0]));
     }
@@ -110,6 +112,7 @@ public class ProgramCard extends CardContent {
 
     void onOk() {
         welcomeDialog.setProgram(getSelectedItem());
+        welcomeDialog.setSandboxSelected(forceSandbox.isSelected());
         ok();
     }
 
@@ -120,7 +123,7 @@ public class ProgramCard extends CardContent {
     private final MouseListener listMouseListener = new MouseAdapter() {
         @Override
         public void mouseClicked(MouseEvent e) {
-            if (e.getClickCount() == 2) setVisible(false);
+            if (e.getClickCount() == 2) onOk();
         }
     };
 

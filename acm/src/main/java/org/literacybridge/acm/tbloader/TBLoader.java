@@ -348,6 +348,7 @@ public class TBLoader extends JFrame {
      */
     private void authenticate() {
         Authenticator authInstance = Authenticator.getInstance();
+        authInstance.setLocallyAvailablePrograms(DeploymentsManager.getLocalPrograms());
         Authenticator.SigninResult result = authInstance.getUserIdentity(this, OFFLINE_EMAIL_CHOICE, CHOOSE_PROGRAM);
         if (result == Authenticator.SigninResult.FAILURE) {
             JOptionPane.showMessageDialog(this,

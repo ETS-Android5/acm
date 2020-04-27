@@ -20,24 +20,26 @@ import org.literacybridge.acm.cloud.cognito.CognitoJWTParser;
 import org.literacybridge.acm.config.AccessControl;
 import org.literacybridge.acm.config.HttpUtility;
 
-import javax.swing.*;
 import java.awt.Window;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
-import static javax.swing.JOptionPane.QUESTION_MESSAGE;
 
 /**
  * Helper class to provide a simpler interface to cognito authentication.
@@ -70,17 +72,29 @@ public class Authenticator {
 
     private String userName;
     private String userEmail;
-    private Map<String, String> userPrograms;
+    private Map<String, String> userPrograms = new HashMap<>();
     private String userProgram;
+    private boolean sandboxSelected = false;
 
     // Cached helpers. Ones not used internally are lazy allocated.
     private final IdentityPersistence identityPersistence;
     private TbSrnHelper tbSrnHelper = null;
     private ProjectsHelper projectsHelper = null;
 
+    // Programs available in local storage.
+    private List<String> locallyAvailablePrograms = new LinkedList<>();
+
     private Authenticator() {
         this.identityPersistence = new IdentityPersistence();
         cognitoHelper = new CognitoHelper();
+    }
+
+    public List<String> getLocallyAvailablePrograms() {
+        return locallyAvailablePrograms;
+    }
+
+    public void setLocallyAvailablePrograms(Collection<String> locallyAvailablePrograms) {
+        this.locallyAvailablePrograms = new ArrayList<>(locallyAvailablePrograms);
     }
 
     /**
@@ -124,6 +138,28 @@ public class Authenticator {
         return userProgram;
     }
 
+    /**
+     * Gets the list of roles, if any, that are defined for the user in the selected program.
+     * This will be empty if offline.
+     * @return the set of roles.
+     */
+    public Set<String> getUserRoles() {
+        Set<String> result = new HashSet<>();
+        String roleStr = userPrograms.get(userProgram);
+        if (roleStr != null) {
+            String[] roles = roleStr.split(",");
+            result.addAll(Arrays.asList(roles));
+        }
+        return result;
+    }
+
+    public boolean isSandboxSelected() {
+        return this.sandboxSelected;
+    }
+    void setSandboxSelected(boolean isSelected) {
+        this.sandboxSelected = isSelected;
+    }
+
     public TbSrnHelper getTbSrnHelper() {
         if (tbSrnHelper == null) {
             if (!signinResult.signedIn()) {
@@ -154,7 +190,7 @@ public class Authenticator {
         }
     }
 
-    public enum SigninOptions {OFFLINE_EMAIL_CHOICE, CHOOSE_PROGRAM, LOCAL_DATA_ONLY}
+    public enum SigninOptions {OFFLINE_EMAIL_CHOICE, CHOOSE_PROGRAM, LOCAL_DATA_ONLY, OFFER_DEMO_MODE}
 
     /**
      * Determine who the user is. If we can access an authentication server, the user must
@@ -199,6 +235,7 @@ public class Authenticator {
                 authenticationInfo.forEach(props::put);
                 identityPersistence.saveSignInDetails(userName, userEmail, password, props);
                 userProgram = dialog.getProgram();
+                sandboxSelected = dialog.isSandboxSelected();
                 signinResult = SigninResult.SUCCESS;
             } else {
                 // Couldn't get to Cognito; only have user's email.
@@ -217,6 +254,7 @@ public class Authenticator {
                         userPrograms = parseProgramList(authenticationInfo.get("programs"));
                     }
                     userProgram = dialog.getProgram();
+                    sandboxSelected = dialog.isSandboxSelected();
                     signinResult = SigninResult.SUCCESS;
                 } else {
                     // If some new email with no saved details, use what we have.

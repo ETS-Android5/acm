@@ -2,12 +2,14 @@ package org.literacybridge.acm.cloud.AuthenticationDialog;
 
 import org.apache.commons.lang3.StringUtils;
 import org.literacybridge.acm.cloud.ActionLabel;
-import org.literacybridge.acm.gui.Assistant.PlaceholderTextField;
+import org.literacybridge.acm.gui.Assistant.FlexTextField;
+import org.literacybridge.acm.gui.UIConstants;
 import org.literacybridge.acm.gui.util.UIUtils;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
@@ -22,9 +24,8 @@ public class SignInCard extends CardContent {
     private static final String DIALOG_TITLE = "Amplio Sign In";
 
     private final JButton signIn;
-    private final PlaceholderTextField usernameField;
-    private final PlaceholderTextField passwordField;
-    private final JCheckBox showPassword;
+    private final FlexTextField usernameField;
+    private final FlexTextField passwordField;
     private final JCheckBox rememberMe;
 
     public SignInCard(WelcomeDialog welcomeDialog, WelcomeDialog.Cards panel) {
@@ -36,16 +37,23 @@ public class SignInCard extends CardContent {
         gbc.insets.bottom = 12; // tighter bottom spacing.
 
         // User name
-        usernameField = new PlaceholderTextField();
+        usernameField = new FlexTextField();
+        Font uFont = usernameField.getFont();
+        Font newFont = new Font(uFont.getName(), uFont.getStyle(),uFont.getSize()+2 );
+        usernameField.setFont(newFont);
+        ImageIcon peopleIcon = new ImageIcon(UIConstants.getResource("person_256.png"));
+        usernameField.setIcon(peopleIcon);
+        usernameField.setGreyBorder();
         usernameField.setPlaceholder("User Name or Email Address");
         usernameField.addKeyListener(textKeyListener);
         usernameField.getDocument().addDocumentListener(textDocumentListener);
         dialogPanel.add(usernameField, gbc);
 
         // Password
-        passwordField = new PlaceholderTextField();
+        passwordField = new FlexTextField();
+        passwordField.setFont(newFont);
+        passwordField.setIsPassword(true);
         passwordField.setPlaceholder("Password");
-        passwordField.setMaskChar('*');
         passwordField.addKeyListener(textKeyListener);
         passwordField.getDocument().addDocumentListener(textDocumentListener);
         dialogPanel.add(passwordField, gbc);
@@ -53,9 +61,6 @@ public class SignInCard extends CardContent {
         // Option checkboxes, and forgot password link.
         Box hBox = Box.createHorizontalBox();
         Box vBox = Box.createVerticalBox();
-        showPassword = new JCheckBox("Show password");
-        showPassword.addActionListener(this::onShowPassword);
-        vBox.add(showPassword);
         rememberMe = new JCheckBox("Remember me", true);
         vBox.add(rememberMe);
         hBox.add(vBox);
@@ -98,10 +103,9 @@ public class SignInCard extends CardContent {
         super.onShown();
         usernameField.setText(welcomeDialog.getUsername());
         passwordField.setText(welcomeDialog.getPassword());
-        showPassword.setSelected(false);
-        onShowPassword(null);
+        passwordField.setPasswordRevealed(false);
         passwordField.setText(welcomeDialog.getPassword());
-        showPassword.setEnabled(!welcomeDialog.isSavedPassword());
+        passwordField.setRevealPasswordEnabled(!welcomeDialog.isSavedPassword());
     }
 
     public boolean isRememberMeSelected() {
@@ -135,14 +139,6 @@ public class SignInCard extends CardContent {
         welcomeDialog.cognitoInterface.resetPassword(usernameField.getText());
 
         welcomeDialog.gotoResetCard();
-    }
-
-    /**
-     * Show or hide the password. This is disabled unless this user typed in the password.
-     * @param actionEvent is ignored.
-     */
-    private void onShowPassword(ActionEvent actionEvent) {
-        passwordField.setMaskChar(showPassword.isSelected() ? (char)0 : '*');
     }
 
     /**
@@ -184,7 +180,9 @@ public class SignInCard extends CardContent {
         boolean enableSignIn = (usernameField.getText().length() > 0 && passwordField.getText().length() > 0);
         signIn.setEnabled(enableSignIn);
         getRootPane().setDefaultButton(enableSignIn?signIn:null);
-        if (passwordField.getText().length() == 0) showPassword.setEnabled(true);
+        if (passwordField.getText().length() == 0) {
+            passwordField.setRevealPasswordEnabled(true);
+        }
     }
 
     @SuppressWarnings("FieldCanBeLocal")
