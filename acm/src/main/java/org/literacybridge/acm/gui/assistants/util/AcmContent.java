@@ -6,6 +6,7 @@ import org.literacybridge.acm.store.AudioItem;
 import org.literacybridge.acm.store.Playlist;
 
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -16,13 +17,32 @@ import java.util.Locale;
  * as deduced from the playlists in the ACM.
  */
 public class AcmContent {
-    public static class AcmRootNode extends DefaultMutableTreeNode {
+    static class EnumerationAdapter<from, to> implements Enumeration<to> {
+        Enumeration<from> sourceEnumeration;
+        public EnumerationAdapter(Enumeration<from> source) {
+            sourceEnumeration = source;
+        }
+
+        @Override
+        public boolean hasMoreElements() {
+            return sourceEnumeration.hasMoreElements();
+        }
+
+        @Override
         @SuppressWarnings("unchecked")
-        public Enumeration<LanguageNode> children() {
-            return (Enumeration<LanguageNode>)super.children();
+        public to nextElement() {
+            return (to)sourceEnumeration.nextElement();
+        }
+    }
+
+    public static class AcmRootNode extends DefaultMutableTreeNode {
+
+        @SuppressWarnings("unchecked")
+        public Enumeration<LanguageNode> getChildren() {
+            return new EnumerationAdapter<TreeNode, LanguageNode>(super.children());
         }
         public LanguageNode find(String languagecode) {
-            Enumeration<LanguageNode> children = children();
+            Enumeration<LanguageNode> children = getChildren();
             while (children.hasMoreElements()) {
                 LanguageNode languageNode = children.nextElement();
                 if (languageNode.getLanguageCode().equals(languagecode))
@@ -32,12 +52,14 @@ public class AcmContent {
         }
 
         public List<LanguageNode> getLanguageNodes() {
-            if (super.children == null) {
-                return new ArrayList<>();
-            } else {
-                //noinspection unchecked
-                return (List<LanguageNode>)super.children;
+            // Fortunately this is pretty low volume.
+            List<LanguageNode> result = new ArrayList<>();
+            if (super.children != null) {
+                for (Object tn : super.children) {
+                    result.add((LanguageNode)tn);
+                }
             }
+            return result;
         }
 
         public LanguageNode getLanguageNode(String languagecode) {
@@ -68,11 +90,11 @@ public class AcmContent {
         }
 
         @SuppressWarnings("unchecked")
-        public Enumeration<PlaylistNode> children() {
-            return (Enumeration<PlaylistNode>)super.children();
+        public Enumeration<PlaylistNode> getChildren() {
+            return new EnumerationAdapter<TreeNode, PlaylistNode>(super.children());
         }
         public PlaylistNode find(String title) {
-            Enumeration<PlaylistNode> children = children();
+            Enumeration<PlaylistNode> children = getChildren();
             while (children.hasMoreElements()) {
                 PlaylistNode playlistNode = children.nextElement();
                 if (playlistNode.getTitle().equals(title))
@@ -82,12 +104,13 @@ public class AcmContent {
         }
 
         public List<PlaylistNode> getPlaylistNodes() {
-            if (super.children == null) {
-                return new ArrayList<>();
-            } else {
-                //noinspection unchecked
-                return (List<PlaylistNode>)super.children;
+            List<PlaylistNode> result = new ArrayList<>();
+            if (super.children != null) {
+                for (Object tn : super.children) {
+                    result.add((PlaylistNode)tn);
+                }
             }
+            return result;
         }
     }
 
@@ -113,17 +136,18 @@ public class AcmContent {
         }
 
         @SuppressWarnings("unchecked")
-        public Enumeration<AudioItemNode> children() {
-            return (Enumeration<AudioItemNode>)super.children();
+        public Enumeration<AudioItemNode> getChildren() {
+            return new EnumerationAdapter<TreeNode, AudioItemNode>(super.children());
         }
 
         public List<AudioItemNode> getAudioItemNodes() {
-            if (super.children == null) {
-                return new ArrayList<>();
-            } else {
-                //noinspection unchecked
-                return (List<AudioItemNode>)super.children;
+            List<AudioItemNode> result = new ArrayList<>();
+            if (super.children != null) {
+                for (Object tn : super.children) {
+                    result.add((AudioItemNode)tn);
+                }
             }
+            return result;
         }
     }
 

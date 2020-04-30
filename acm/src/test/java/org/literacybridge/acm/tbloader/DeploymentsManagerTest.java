@@ -6,7 +6,11 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.literacybridge.acm.config.ACMConfiguration;
 import org.literacybridge.core.tbloader.TBLoaderConstants;
-import org.powermock.api.mockito.PowerMockito;
+
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.mock;
+import static org.powermock.api.easymock.PowerMock.mockStatic;
+
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -22,7 +26,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.powermock.api.mockito.PowerMockito.when;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ DeploymentsManager.class, ACMConfiguration.class })
@@ -54,13 +57,13 @@ public class DeploymentsManagerTest {
         globalPublishedDir = new File(tbLoaderDir, "published");
         globalPublishedDir.mkdirs();
 
-        ACMConfiguration acmConfig = PowerMockito.mock(ACMConfiguration.class);
-        when(acmConfig.getLocalTbLoaderDirFor(PROJECT_NAME)).thenReturn(localProjectDir);
-        when(acmConfig.getTbLoaderDirFor(ACM_NAME)).thenReturn(tbLoaderDir);
+        ACMConfiguration acmConfig = mock(ACMConfiguration.class);
+        expect(acmConfig.getLocalTbLoaderDirFor(PROJECT_NAME)).andReturn(localProjectDir);
+        expect(acmConfig.getTbLoaderDirFor(ACM_NAME)).andReturn(tbLoaderDir);
 
-        PowerMockito.mockStatic(ACMConfiguration.class);
-        PowerMockito.when(ACMConfiguration.cannonicalAcmDirectoryName(PROJECT_NAME)).thenReturn(ACM_NAME);
-        PowerMockito.when(ACMConfiguration.getInstance()).thenReturn(acmConfig);
+        mockStatic(ACMConfiguration.class);
+        expect(ACMConfiguration.cannonicalAcmDirectoryName(PROJECT_NAME)).andReturn(ACM_NAME);
+        expect(ACMConfiguration.getInstance()).andReturn(acmConfig);
     }
 
     /**

@@ -44,7 +44,7 @@ public class DropboxFinder {
    *
    * @return True if running on Windows. False otherwise.
    */
-  protected static boolean onWindows() {
+  protected boolean onWindows() {
     return OsUtils.WINDOWS;
   }
 
@@ -109,7 +109,7 @@ public class DropboxFinder {
    */
   protected File getInfoFile() {
     File infoJson;
-    if (DropboxFinder.onWindows()) {
+    if (onWindows()) {
       infoJson = getInfoFileFromWindows();
     } else {
       infoJson = getInfoFileFromNix();
