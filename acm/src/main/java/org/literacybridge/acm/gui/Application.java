@@ -237,10 +237,10 @@ public class Application extends JXFrame {
       if (OWN_SPLASH)
         splash.setIconImage(iconImage);
     }
-    OsUtils.enableOSXQuitStrategy();
+//    OsUtils.enableOSXQuitStrategy();
 
       // set look & feel; we use Sea Glass by default.
-//      SwingUtils.setLookAndFeel("");
+      SwingUtils.setLookAndFeel("");
 
     // String dbDirName = null, repositoryDirName= null;
     // initialize config and generate random ID for this acm instance
