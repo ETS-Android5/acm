@@ -334,6 +334,7 @@ public class Application extends JXFrame {
     Authenticator authInstance = Authenticator.getInstance();
     authInstance.setLocallyAvailablePrograms(ACMConfiguration.getInstance().getKnownAcms());
     Authenticator.SigninResult result = authInstance.getUserIdentity(null,
+        ACMConfiguration.cannonicalProjectName(params.sharedACM),
         OFFLINE_EMAIL_CHOICE,
         CHOOSE_PROGRAM,
         LOCAL_DATA_ONLY,

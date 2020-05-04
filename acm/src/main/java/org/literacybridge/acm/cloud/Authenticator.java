@@ -72,6 +72,7 @@ public class Authenticator {
 
     private String userName;
     private String userEmail;
+    // { program : roles-string }
     private Map<String, String> userPrograms = new HashMap<>();
     private String userProgram;
     private boolean sandboxSelected = false;
@@ -202,13 +203,13 @@ public class Authenticator {
      * @param signinFlags options for the sign-in.
      * @return a SignInResult from the process.
      */
-    public SigninResult getUserIdentity(Window parent, SigninOptions... signinFlags) {
+    public SigninResult getUserIdentity(Window parent, String defaultProgram, SigninOptions... signinFlags) {
         Set<SigninOptions> options = new HashSet<>(Arrays.asList(signinFlags));
         SigninDetails savedSignInDetails = identityPersistence.retrieveSignInDetails();
         signinResult = SigninResult.NONE;
         boolean onlineAuthentication = isOnline();
 
-        WelcomeDialog dialog = new WelcomeDialog(parent, options, cognitoInterface);
+        WelcomeDialog dialog = new WelcomeDialog(parent, defaultProgram, options, cognitoInterface);
         if (savedSignInDetails != null) {
             dialog.setSavedCredentials(savedSignInDetails.identity,
                 savedSignInDetails.email,

@@ -88,12 +88,12 @@ public class WelcomeDialog extends JDialog {
 
     enum Cards {
         NullCard(100, CardContent::new),
-        SignInCard(260, SignInCard::new),
-        SignUpCard(320, SignUpCard::new),
-        ResetCard(280, ResetCard::new),
-        ConfirmCard(450, ConfirmCard::new),
-        EmailCard(130, EmailCard::new),
-        ProgramCard(450, ProgramCard::new);
+        SignInCard(555, SignInCard::new),
+        SignUpCard(550, SignUpCard::new),
+        ResetCard(555, ResetCard::new),
+        ConfirmCard(410, ConfirmCard::new),
+        EmailCard(415, EmailCard::new),
+        ProgramCard(580, ProgramCard::new);
 
         int minimumHeight;
         BiFunction<WelcomeDialog, Cards, CardContent> ctor;
@@ -113,41 +113,59 @@ public class WelcomeDialog extends JDialog {
 
     final Authenticator.CognitoInterface cognitoInterface;
     final Set<Authenticator.SigninOptions> options;
+    final String defaultProgram;
 
-    private void makePanel(Cards card) {
+    /**
+     * Helper to make a card and add it to the card panel and card map.
+     * @param card enum Cards value specifying which card to make.
+     */
+    private void makeCard(Cards card) {
         CardContent newCard = card.ctor.apply(this, card);
         cardsContainer.add(card.name(), newCard);
         cardMap.put(card, newCard);
     }
 
-    public WelcomeDialog(Window owner, Set<Authenticator.SigninOptions> options, Authenticator.CognitoInterface cognitoInterface) {
+    /**
+     * The Welcome dialog. Prompts the user to sign in when online, or enter their email when
+     * offline. If there are multiple programs available, prompts the user to choose the desired
+     * program.
+     * @param owner Owner window.
+     * @param defaultProgram The program to be selected by default (if it is an available program).
+     * @param options From Authenticator.SignInOptions
+     * @param cognitoInterface a private interface inside Authenticator, by which the dialog can
+     *                         query and set values in the Authenticator.
+     */
+    public WelcomeDialog(Window owner,
+        String defaultProgram,
+        Set<Authenticator.SigninOptions> options,
+        Authenticator.CognitoInterface cognitoInterface) {
         super(owner, "Amplio Sign In", ModalityType.DOCUMENT_MODAL);
         this.cognitoInterface = cognitoInterface;
         this.options = options;
+        this.defaultProgram = defaultProgram;
 
         // Set an empty border on the panel, to give some blank space around the content.
         setLayout(new BorderLayout());
-
         JPanel borderPanel = new JPanel();
         Border outerBorder = new EmptyBorder(12, 12, 12, 12);
         Border innerBorder = new RoundedLineBorder(Color.GRAY, 1, 6, 2);
         borderPanel.setBorder(new CompoundBorder(outerBorder, innerBorder));
         add(borderPanel, BorderLayout.CENTER);
         borderPanel.setLayout(new BorderLayout());
+        borderPanel.setBackground(Color.white);
 
         cardLayout = new CardLayout();
         cardsContainer = new JPanel(cardLayout);
         borderPanel.add(cardsContainer, BorderLayout.CENTER);
-        cardsContainer.setBorder(new EmptyBorder(6, 6, 6, 6));
+        cardsContainer.setBorder(new EmptyBorder(6, 26, 6, 26));
 
         // Create the panels, add them to the cardPanel, and to the dialogPanelMap.
         if (cognitoInterface.isOnline()) {
-            makePanel(SignInCard);
+            makeCard(SignInCard);
         } else {
-            makePanel(EmailCard);
+            makeCard(EmailCard);
         }
         currentCard = new ArrayList<>(cardMap.values()).get(0);
-//        stream(Panels.values()).forEach(this::makePanel);
 
         ActionListener escListener = e -> currentCard.onCancel(e);
 
@@ -174,6 +192,14 @@ public class WelcomeDialog extends JDialog {
         setMinimumSize(new Dimension(450, currentCard.panel.minimumHeight));
         UIUtils.centerWindow(this, TOP_THIRD);
         setAlwaysOnTop(true);
+
+        // For debugging sizing issues.
+//        addComponentListener(new ComponentAdapter() {
+//            @Override
+//            public void componentResized(ComponentEvent e) {
+//                System.out.println(String.format("Size %dx%d", WelcomeDialog.this.getWidth(), WelcomeDialog.this.getHeight()));
+//            }
+//        });
     }
 
     private void dialogShown() {
@@ -185,30 +211,25 @@ public class WelcomeDialog extends JDialog {
     private org.literacybridge.acm.cloud.AuthenticationDialog.SignInCard signInCard() {
         return ((org.literacybridge.acm.cloud.AuthenticationDialog.SignInCard) cardMap.get(SignInCard));
     }
-//    private org.literacybridge.acm.cloud.AuthenticationDialog.SignUpCard signUpCard() {
-//        return ((org.literacybridge.acm.cloud.AuthenticationDialog.SignUpCard) cardMap.get(SignUpCard));
-//    }
-//    private org.literacybridge.acm.cloud.AuthenticationDialog.ConfirmCard confirmCard() {
-//        return ((org.literacybridge.acm.cloud.AuthenticationDialog.ConfirmCard) cardMap.get(ConfirmCard));
-//    }
-//    private org.literacybridge.acm.cloud.AuthenticationDialog.ResetCard resetCard() {
-//        return ((org.literacybridge.acm.cloud.AuthenticationDialog.ResetCard) cardMap.get(ResetCard));
-//    }
-//    private org.literacybridge.acm.cloud.AuthenticationDialog.EmailCard emailCard() {
-//        return ((org.literacybridge.acm.cloud.AuthenticationDialog.EmailCard) cardMap.get(EmailCard));
-//    }
-//    private org.literacybridge.acm.cloud.AuthenticationDialog.ProgramCard programCard() {
-//        return ((org.literacybridge.acm.cloud.AuthenticationDialog.ProgramCard) cardMap.get(ProgramCard));
-//    }
 
     public boolean isRememberMeSelected() {
         return signInCard().isRememberMeSelected();
     }
 
+    /**
+     * The Authenticator calls this to retrieve the password, to "remember me".
+     * @return the password.
+     */
     public String getPassword() {
         return password;
     }
 
+    /**
+     * The Authenticator calls this with any saved credentials, "remember me"
+     * @param username The saved user name.
+     * @param email The saved email associated with the saved user name.
+     * @param password The saved password.
+     */
     public void setSavedCredentials(String username, String email, String password) {
         this.username = username;
         this.email = email;
@@ -216,23 +237,28 @@ public class WelcomeDialog extends JDialog {
         this.isSavedPassword = true;
     }
 
-    private void activateCard(Cards newPanel) {
-        if (!cardMap.containsKey(newPanel)) {
-            makePanel(newPanel);
+    /**
+     * Switches to a card. If the card has not previously been shown, it will be created now.
+     * @param newCard The enum Cards value to be shown.
+     */
+    private void activateCard(Cards newCard) {
+        if (!cardMap.containsKey(newCard)) {
+            makeCard(newCard);
         }
         int deltaFromNominal = getHeight()- currentCard.panel.minimumHeight;
         System.out.printf("transition card %s -> %s, cur height: %d, cur min: %d, new min: %d, delta: %d\n",
-            currentCard.panel.name(), newPanel.name(),
+            currentCard.panel.name(), newCard.name(),
             getHeight(),
             currentCard.panel.minimumHeight,
-            newPanel.minimumHeight,
+            newCard.minimumHeight,
             deltaFromNominal);
-        if (getHeight() != newPanel.minimumHeight+deltaFromNominal) {
-            setMinimumSize(new Dimension(getWidth(), newPanel.minimumHeight));
-            setSize(new Dimension(getWidth(), newPanel.minimumHeight+deltaFromNominal));
+        if (getHeight() != newCard.minimumHeight+deltaFromNominal) {
+            setMinimumSize(new Dimension(getWidth(), newCard.minimumHeight));
+            setSize(new Dimension(getWidth(), newCard.minimumHeight+deltaFromNominal));
         }
-        currentCard = cardMap.get(newPanel);
-        cardLayout.show(cardsContainer, newPanel.name());
+        currentCard = cardMap.get(newCard);
+        clearMessage();
+        cardLayout.show(cardsContainer, newCard.name());
         currentCard.onShown();
     }
 
@@ -255,18 +281,30 @@ public class WelcomeDialog extends JDialog {
         }
     }
 
+    /**
+     * Navigate to the sign up card, in response to "No user id? Click here!"
+     */
     void gotoSignUpCard() {
         activateCard(SignUpCard);
     }
 
+    /**
+     * Navigates to the password reset card, in response to "Forgot password?"
+     */
     void gotoResetCard() {
         activateCard(ResetCard);
     }
 
+    /**
+     * Navigates to the new account confirmation card.
+     */
     void gotoConfirmationCard() {
         activateCard(ConfirmCard);
     }
 
+    /**
+     * Navigates to the program selection card, after signing in or entering email address.
+     */
     void gotoProgramSelection() {
         if (options.contains(Authenticator.SigninOptions.CHOOSE_PROGRAM)) {
             activateCard(ProgramCard);
@@ -278,10 +316,10 @@ public class WelcomeDialog extends JDialog {
 
     /**
      * Called by the sub-panels when user clicks OK on the panel.
-     * @param senderPanel that clicked OK.
+     * @param senderCard that clicked OK.
      */
-    void ok(CardContent senderPanel) {
-        switch (senderPanel.panel) {
+    void ok(CardContent senderCard) {
+        switch (senderCard.panel) {
         case SignInCard:
         case EmailCard:
             gotoProgramSelection();
@@ -302,16 +340,19 @@ public class WelcomeDialog extends JDialog {
     /**
      * Called by the sub-panels when user cancels. The result may just be to
      * switch back to the sign-in panel, or may be to cancel.
-     * @param senderPanel that clicked cancel.
+     * @param senderCard that clicked cancel.
      */
-    void cancel(CardContent senderPanel) {
-        switch (senderPanel.panel) {
+    void cancel(CardContent senderCard) {
+        switch (senderCard.panel) {
         case SignInCard:
 
-        case ConfirmCard:
         case EmailCard:
         case ProgramCard:
             setVisible(false);
+            break;
+
+        case ConfirmCard:
+            activateCard(SignUpCard);
             break;
 
         case SignUpCard:
@@ -321,8 +362,13 @@ public class WelcomeDialog extends JDialog {
         }
     }
 
-    void SdkClientException(CardContent senderPanel) {
-        if (senderPanel.panel == SignInCard) {
+    /**
+     * Called when the signin card detects an SdkClientException. This is interpreted to mean
+     * that we are offline.
+     * @param senderCard The card that detected SdkClientException. Only the sign in card is valid.
+     */
+    void SdkClientException(CardContent senderCard) {
+        if (senderCard.panel == SignInCard) {
             if (options.contains(Authenticator.SigninOptions.OFFLINE_EMAIL_CHOICE)) {
                 activateCard(EmailCard);
             } else if (StringUtils.isNotBlank(email)) {

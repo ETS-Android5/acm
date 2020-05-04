@@ -3,27 +3,29 @@ package org.literacybridge.acm.cloud.AuthenticationDialog;
 import org.apache.commons.lang3.StringUtils;
 import org.literacybridge.acm.cloud.ActionLabel;
 import org.literacybridge.acm.gui.Assistant.FlexTextField;
-import org.literacybridge.acm.gui.UIConstants;
+import org.literacybridge.acm.gui.Assistant.GBC;
+import org.literacybridge.acm.gui.Assistant.PanelButton;
 import org.literacybridge.acm.gui.util.UIUtils;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
+import static java.awt.GridBagConstraints.CENTER;
+import static java.awt.GridBagConstraints.EAST;
+import static java.awt.GridBagConstraints.NONE;
 import static org.literacybridge.acm.gui.Assistant.AssistantPage.getGBC;
 import static org.literacybridge.acm.gui.util.UIUtils.UiOptions.TOP_THIRD;
 
 public class SignInCard extends CardContent {
     private static final String DIALOG_TITLE = "Amplio Sign In";
 
-    private final JButton signIn;
+    private final PanelButton signIn;
     private final FlexTextField usernameField;
     private final FlexTextField passwordField;
     private final JCheckBox rememberMe;
@@ -33,17 +35,17 @@ public class SignInCard extends CardContent {
         JPanel dialogPanel = this;
         // The GUI
         dialogPanel.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = getGBC();
+        GBC gbc = new GBC(getGBC()).withAnchor(CENTER);
         gbc.insets.bottom = 12; // tighter bottom spacing.
+
+        // Amplio logo
+        JLabel logoLabel = new JLabel(getScaledLogo());
+        dialogPanel.add(logoLabel, gbc);
 
         // User name
         usernameField = new FlexTextField();
-        Font uFont = usernameField.getFont();
-        Font newFont = new Font(uFont.getName(), uFont.getStyle(),uFont.getSize()+2 );
-        usernameField.setFont(newFont);
-        ImageIcon peopleIcon = new ImageIcon(UIConstants.getResource("person_256.png"));
-        usernameField.setIcon(peopleIcon);
-        usernameField.setGreyBorder();
+        usernameField.setFont(getTextFont());
+        usernameField.setIcon(getPersonIcon());
         usernameField.setPlaceholder("User Name or Email Address");
         usernameField.addKeyListener(textKeyListener);
         usernameField.getDocument().addDocumentListener(textDocumentListener);
@@ -51,7 +53,7 @@ public class SignInCard extends CardContent {
 
         // Password
         passwordField = new FlexTextField();
-        passwordField.setFont(newFont);
+        passwordField.setFont(getTextFont());
         passwordField.setIsPassword(true);
         passwordField.setPlaceholder("Password");
         passwordField.addKeyListener(textKeyListener);
@@ -59,41 +61,27 @@ public class SignInCard extends CardContent {
         dialogPanel.add(passwordField, gbc);
 
         // Option checkboxes, and forgot password link.
-        Box hBox = Box.createHorizontalBox();
-        Box vBox = Box.createVerticalBox();
         rememberMe = new JCheckBox("Remember me", true);
-        vBox.add(rememberMe);
-        hBox.add(vBox);
-        hBox.add(Box.createHorizontalGlue());
 
-        ActionLabel forgotPassword = new ActionLabel("Forgot password?");
+        ActionLabel forgotPassword = new ActionLabel("Forgot your password?");
         forgotPassword.addActionListener(this::onForgotPassword);
-
-        hBox.add(forgotPassword);
-        hBox.add(Box.createHorizontalStrut(10));
-
-        dialogPanel.add(hBox, gbc);
+        dialogPanel.add(forgotPassword, gbc.withAnchor(EAST).withFill(NONE));
 
         // Consume all vertical space here.
-        gbc.weighty = 1.0;
-        dialogPanel.add(new JLabel(""), gbc);
-        gbc.weighty = 0;
+        dialogPanel.add(new JLabel(""), gbc.withWeighty(1.0));
 
-        // Sign In button and Sign Up link.
-        hBox = Box.createHorizontalBox();
-        signIn = new JButton("Sign In");
+        // Sign In button.
+        signIn = new PanelButton("Sign In");
+        signIn.setFont(getTextFont());
+        signIn.setBgColorPalette(AMPLIO_GREEN);
         signIn.addActionListener(this::onSignin);
         signIn.setEnabled(false);
-        hBox.add(signIn);
-        hBox.add(Box.createHorizontalGlue());
+        dialogPanel.add(signIn, gbc.withFill(NONE));
+
+        // Sign-up link.
         ActionLabel signUp = new ActionLabel("No user id? Click here!");
         signUp.addActionListener(this::onSignUp);
-
-        hBox.add(signUp);
-        hBox.add(Box.createHorizontalStrut(10));
-
-        gbc.insets.bottom = 0; // no bottom spacing.
-        dialogPanel.add(hBox, gbc);
+        dialogPanel.add(signUp, gbc.withFill(NONE));
 
         addComponentListener(componentAdapter);
     }
@@ -106,6 +94,8 @@ public class SignInCard extends CardContent {
         passwordField.setPasswordRevealed(false);
         passwordField.setText(welcomeDialog.getPassword());
         passwordField.setRevealPasswordEnabled(!welcomeDialog.isSavedPassword());
+        usernameField.setRequestFocusEnabled(true);
+        usernameField.requestFocusInWindow();
     }
 
     public boolean isRememberMeSelected() {
@@ -134,6 +124,7 @@ public class SignInCard extends CardContent {
             welcomeDialog.setMessage("Please enter the user id or email for which to reset the password.");
             return;
         }
+        welcomeDialog.setUsername(usernameField.getText());
         welcomeDialog.clearMessage();
         // Comment out next line to NOT reset the password, to test the GUI aspect of the reset dialog.
         welcomeDialog.cognitoInterface.resetPassword(usernameField.getText());
@@ -179,7 +170,6 @@ public class SignInCard extends CardContent {
     private void enableControls() {
         boolean enableSignIn = (usernameField.getText().length() > 0 && passwordField.getText().length() > 0);
         signIn.setEnabled(enableSignIn);
-        getRootPane().setDefaultButton(enableSignIn?signIn:null);
         if (passwordField.getText().length() == 0) {
             passwordField.setRevealPasswordEnabled(true);
         }

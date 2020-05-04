@@ -1,21 +1,22 @@
 package org.literacybridge.acm.cloud.AuthenticationDialog;
 
-import org.literacybridge.acm.gui.Assistant.PlaceholderTextField;
+import org.literacybridge.acm.gui.Assistant.FlexTextField;
+import org.literacybridge.acm.gui.Assistant.GBC;
+import org.literacybridge.acm.gui.Assistant.PanelButton;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 
 import static org.literacybridge.acm.gui.Assistant.AssistantPage.getGBC;
 
 public class ConfirmCard extends CardContent {
-    private static final String DIALOG_TITLE = "Create User ID";
+    private static final String DIALOG_TITLE = "Confirm User ID";
 
-    private final PlaceholderTextField confirmationField;
-    private final JButton confirm;
+    private final FlexTextField confirmationField;
+    private final PanelButton confirm;
 
     public ConfirmCard(WelcomeDialog welcomeDialog, WelcomeDialog.Cards panel) {
         super(welcomeDialog, DIALOG_TITLE, panel);
@@ -23,43 +24,53 @@ public class ConfirmCard extends CardContent {
 
         // The GUI
         dialogPanel.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = getGBC();
+        GBC gbc = new GBC(getGBC());
         gbc.insets.bottom = 12; // tighter bottom spacing.
 
+        // Amplio logo
+        JLabel logoLabel = new JLabel(getScaledLogo());
+        dialogPanel.add(logoLabel, gbc);
+
         // User name
-        confirmationField = new PlaceholderTextField();
+        confirmationField = new FlexTextField();
+        confirmationField.setFont(getTextFont());
         confirmationField.setPlaceholder("Confirmation code");
-        confirmationField.getDocument().addDocumentListener(passwordDocListener);
+        confirmationField.getDocument().addDocumentListener(codeDocListener);
         dialogPanel.add(confirmationField, gbc);
 
-        // Option checkboxes, and Password mismatch warning.
-        Box hBox;
-
         // Consume all vertical space here.
-        gbc.weighty = 1.0;
-        dialogPanel.add(new JLabel(""), gbc);
-        gbc.weighty = 0;
+        dialogPanel.add(new JLabel(""), gbc.withWeighty(1.0));
 
-        // Sign In button and Sign Up link.
-        hBox = Box.createHorizontalBox();
-        confirm = new JButton("Confirm");
+        // Buttons.
+        double xPad = 1.25; // Squeeze the buttons horizontally, so they'll fit.
+        double yPad = 1.5;  // Make the buttons a little shorter. Looks a little better.
+        Box hBox = Box.createHorizontalBox();
+        confirm = new PanelButton("Confirm");
+        confirm.setFont(getTextFont());
+        confirm.setPadding(xPad, yPad);
+        confirm.setBgColorPalette(AMPLIO_GREEN);
         confirm.addActionListener(this::onOk);
         confirm.setEnabled(false);
         hBox.add(confirm);
 
         hBox.add(Box.createHorizontalStrut(20));
-        JButton resend = new JButton("Resend Code");
+        PanelButton resend = new PanelButton("Resend Code");
+        resend.setFont(getTextFont());
+        resend.setPadding(xPad, yPad);
+        resend.setBgColorPalette(AMPLIO_GREEN);
         resend.addActionListener(this::onResend);
         resend.setEnabled(true);
         hBox.add(resend);
 
         hBox.add(Box.createHorizontalStrut(20));
-        JButton cancel = new JButton("Cancel");
+        PanelButton cancel = new PanelButton("Cancel");
+        cancel.setFont(getTextFont());
+        cancel.setPadding(xPad, yPad);
+        cancel.setBgColorPalette(AMPLIO_GREEN);
         cancel.addActionListener(this::onCancel);
         hBox.add(cancel);
         hBox.add(Box.createHorizontalGlue());
 
-        gbc.insets.bottom = 0; // no bottom spacing.
         dialogPanel.add(hBox, gbc);
 
         addComponentListener(componentAdapter);
@@ -67,8 +78,7 @@ public class ConfirmCard extends CardContent {
 
     private void onOk(ActionEvent actionEvent) {
         // Unfortunately, cognito doesn't return any success/failure status on this call.
-        @SuppressWarnings("unused")
-        String result = welcomeDialog.cognitoInterface.verifyAccessCode(welcomeDialog.getUsername(), confirmationField.getText());
+        welcomeDialog.cognitoInterface.verifyAccessCode(welcomeDialog.getUsername(), confirmationField.getText());
         ok();
     }
 
@@ -86,6 +96,8 @@ public class ConfirmCard extends CardContent {
     @Override
     void onShown() {
         confirmationField.setText(null);
+        confirmationField.setRequestFocusEnabled(true);
+        confirmationField.requestFocusInWindow();
     }
 
 
@@ -94,7 +106,7 @@ public class ConfirmCard extends CardContent {
      * the "Change" button as appropriate.
      */
     @SuppressWarnings("FieldCanBeLocal")
-    private final DocumentListener passwordDocListener = new DocumentListener() {
+    private final DocumentListener codeDocListener = new DocumentListener() {
         private void check() {
             String code = confirmationField.getText();
             confirm.setEnabled(code.length() > 0);

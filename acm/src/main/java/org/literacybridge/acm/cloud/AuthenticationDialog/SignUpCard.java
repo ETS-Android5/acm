@@ -1,13 +1,14 @@
 package org.literacybridge.acm.cloud.AuthenticationDialog;
 
-import org.literacybridge.acm.gui.Assistant.PlaceholderTextField;
+import org.literacybridge.acm.gui.Assistant.FlexTextField;
+import org.literacybridge.acm.gui.Assistant.GBC;
+import org.literacybridge.acm.gui.Assistant.PanelButton;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 
@@ -16,67 +17,70 @@ import static org.literacybridge.acm.gui.Assistant.AssistantPage.getGBC;
 public class SignUpCard extends CardContent {
     private static final String DIALOG_TITLE = "Create User ID";
 
-    private final PlaceholderTextField usernameField;
-    private final PlaceholderTextField emailField;
-    private final PlaceholderTextField phoneNumberField;
-    private final PlaceholderTextField passwordField1;
-    private final PlaceholderTextField passwordField2;
-    private final JCheckBox showPassword;
+    private final FlexTextField usernameField;
+    private final FlexTextField emailField;
+    private final FlexTextField phoneNumberField;
+    private final FlexTextField passwordField1;
+    private final FlexTextField passwordField2;
     private final JLabel mismatchWarning;
-    private final JButton createAccount;
-    private final JButton haveCode;
+    private final PanelButton createAccount;
+    private final PanelButton haveCode;
 
     public SignUpCard(WelcomeDialog welcomeDialog, WelcomeDialog.Cards panel) {
         super(welcomeDialog, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
         // The GUI
         dialogPanel.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = getGBC();
+        GBC gbc = new GBC(getGBC());
         gbc.insets.bottom = 5; // tighter bottom spacing.
 
+        // Amplio logo
+        JLabel logoLabel = new JLabel(getScaledLogo());
+        dialogPanel.add(logoLabel, gbc);
+
         // User name
-        usernameField = new PlaceholderTextField();
+        usernameField = new FlexTextField();
+        usernameField.setFont(getTextFont());
+        usernameField.setIcon(getPersonIcon());
         usernameField.setPlaceholder("Desired user name");
         usernameField.getDocument().addDocumentListener(passwordDocListener);
         dialogPanel.add(usernameField, gbc);
 
         // Email name
-        emailField = new PlaceholderTextField();
+        emailField = new FlexTextField();
+        emailField.setFont(getTextFont());
         emailField.setPlaceholder("Email Address");
         emailField.getDocument().addDocumentListener(passwordDocListener);
         dialogPanel.add(emailField, gbc);
 
         // Phone number
-        phoneNumberField = new PlaceholderTextField();
+        phoneNumberField = new FlexTextField();
+        phoneNumberField.setFont(getTextFont());
         phoneNumberField.setPlaceholder("Phone number (optional)");
         phoneNumberField.getDocument().addDocumentListener(passwordDocListener);
         dialogPanel.add(phoneNumberField, gbc);
 
         // Password
-        passwordField1 = new PlaceholderTextField();
+        passwordField1 = new FlexTextField();
+        passwordField1.setFont(getTextFont());
         passwordField1.setPlaceholder("Password");
-        passwordField1.setMaskChar('*');
+        passwordField1.setIsPassword(true).setRevealPasswordEnabled(true);
         passwordField1.getDocument().addDocumentListener(passwordDocListener);
         dialogPanel.add(passwordField1, gbc);
 
         // Password, again
-        passwordField2 = new PlaceholderTextField();
+        passwordField2 = new FlexTextField();
+        passwordField2.setFont(getTextFont());
         passwordField2.setPlaceholder("Repeat password");
-        passwordField2.setMaskChar('*');
+        passwordField2.setIsPassword(true).setRevealPasswordEnabled(true);
         passwordField2.getDocument().addDocumentListener(passwordDocListener);
         dialogPanel.add(passwordField2, gbc);
 
-        // Option checkboxes, and Password mismatch warning.
         Box hBox = Box.createHorizontalBox();
-        showPassword = new JCheckBox("Show password");
-        showPassword.addActionListener(this::onShowPassword);
-        hBox.add(showPassword);
-        hBox.add(Box.createHorizontalStrut(10));
-
         mismatchWarning = new JLabel("Passwords don't match.");
         mismatchWarning.setForeground(Color.RED);
         Font font = mismatchWarning.getFont();
-        font = new Font(font.getName(), font.getStyle()|Font.ITALIC, font.getSize());
+        font = new Font(font.getName(), font.getStyle() | Font.ITALIC, font.getSize());
         mismatchWarning.setFont(font);
         mismatchWarning.setVisible(false);
         hBox.add(mismatchWarning);
@@ -85,30 +89,38 @@ public class SignUpCard extends CardContent {
         dialogPanel.add(hBox, gbc);
 
         // Consume all vertical space here.
-        gbc.weighty = 1.0;
-        dialogPanel.add(new JLabel(""), gbc);
-        gbc.weighty = 0;
+        dialogPanel.add(new JLabel(""), gbc.withWeighty(1.0));
 
-        // Sign In button and Sign Up link.
+        // Buttons.
+        double xPad = 1.25; // Squeeze the buttons horizontally, so they'll fit.
+        double yPad = 1.5;  // Make the buttons a little shorter. Looks a little better.
         hBox = Box.createHorizontalBox();
-        createAccount = new JButton("Create User ID");
+        createAccount = new PanelButton("Create User ID");
+        createAccount.setFont(getTextFont());
+        createAccount.setPadding(xPad, yPad);
+        createAccount.setBgColorPalette(AMPLIO_GREEN);
         createAccount.addActionListener(this::onCreate);
         createAccount.setEnabled(false);
         hBox.add(createAccount);
 
         hBox.add(Box.createHorizontalStrut(20));
-        haveCode = new JButton("Have Code");
+        haveCode = new PanelButton("Have Code");
+        haveCode.setFont(getTextFont());
+        haveCode.setPadding(xPad, yPad);
+        haveCode.setBgColorPalette(AMPLIO_GREEN);
         haveCode.addActionListener(this::haveCode);
         haveCode.setEnabled(false);
         hBox.add(haveCode);
 
         hBox.add(Box.createHorizontalStrut(20));
-        JButton cancel = new JButton("Cancel");
+        PanelButton cancel = new PanelButton("Cancel");
+        cancel.setFont(getTextFont());
+        cancel.setPadding(xPad, yPad);
+        cancel.setBgColorPalette(AMPLIO_GREEN);
         cancel.addActionListener(this::onCancel);
         hBox.add(cancel);
         hBox.add(Box.createHorizontalGlue());
 
-        gbc.insets.bottom = 0; // no bottom spacing.
         dialogPanel.add(hBox, gbc);
 
         addComponentListener(componentAdapter);
@@ -122,9 +134,9 @@ public class SignUpCard extends CardContent {
     private void onCreate(ActionEvent actionEvent) {
         welcomeDialog.clearMessage();
         String signUpResult = welcomeDialog.cognitoInterface.signUpUser(usernameField.getText(),
-                passwordField1.getText(),
-                emailField.getText(),
-                phoneNumberField.getText());
+            passwordField1.getText(),
+            emailField.getText(),
+            phoneNumberField.getText());
 
         if (signUpResult != null) {
             welcomeDialog.setMessage(signUpResult);
@@ -137,6 +149,7 @@ public class SignUpCard extends CardContent {
 
     /**
      * User clicked "Have code", meaning that they
+     *
      * @param actionEvent is unused
      */
     private void haveCode(ActionEvent actionEvent) {
@@ -155,12 +168,13 @@ public class SignUpCard extends CardContent {
         usernameField.setText(null);
         passwordField1.setText(null);
         passwordField2.setText(null);
-        showPassword.setSelected(false);
-        onShowPassword(null);
+        passwordField1.setRevealPasswordEnabled(true).setPasswordRevealed(false);
+        passwordField2.setRevealPasswordEnabled(true).setPasswordRevealed(false);
         emailField.setText(null);
         phoneNumberField.setText(null);
+        usernameField.setRequestFocusEnabled(true);
+        usernameField.requestFocusInWindow();
     }
-
 
     /**
      * As the user types into various text boxes, sets the mismatch warning and enables/disables
@@ -174,9 +188,11 @@ public class SignUpCard extends CardContent {
             String p2 = passwordField2.getText();
             String email = emailField.getText();
             mismatchWarning.setVisible(p1.length() > 0 && p2.length() > 0 && !p1.equals(p2));
-            createAccount.setEnabled(name.length() > 0 && p1.length() > 0 && p1.equals(p2) && email.length() > 5);
+            createAccount.setEnabled(
+                name.length() > 0 && p1.length() > 0 && p1.equals(p2) && email.length() > 5);
             haveCode.setEnabled(name.length() > 0);
         }
+
         @Override
         public void insertUpdate(DocumentEvent e) {
             check();
@@ -192,12 +208,5 @@ public class SignUpCard extends CardContent {
             check();
         }
     };
-
-
-    private void onShowPassword(ActionEvent actionEvent) {
-        passwordField1.setMaskChar(showPassword.isSelected() ? (char)0 : '*');
-        passwordField2.setMaskChar(showPassword.isSelected() ? (char)0 : '*');
-    }
-
 
 }

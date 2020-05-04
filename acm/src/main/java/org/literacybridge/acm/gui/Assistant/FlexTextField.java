@@ -17,6 +17,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class FlexTextField extends PlaceholderTextField {
+    private static final char MASK_CHAR = '●';
+    private static final char NOMASK_CHAR = (char)'\0';
     private IconHelper helper;
     private IconHelper getHelper() {
         if (helper == null) {
@@ -30,8 +32,8 @@ public class FlexTextField extends PlaceholderTextField {
     private boolean revealPasswordEnabled = false;
     private boolean isPasswordRevealed = false;
 
-    private final ImageIcon eyeIcon = new ImageIcon(UIConstants.getResource("eye_256.png"));
-    private final ImageIcon noEyeIcon = new ImageIcon(UIConstants.getResource("no-eye_256.png"));
+    private static ImageIcon eyeIcon;
+    private static ImageIcon noEyeIcon;
 
     public FlexTextField() {
         this(null, null, 0);
@@ -60,6 +62,12 @@ public class FlexTextField extends PlaceholderTextField {
         getHelper().onPaintComponent(pG);
     }
 
+    @Override
+    public void setText(String t) {
+        if (t==null && getText()!=null || t!=null && !t.equals(getText()))
+            super.setText(t);
+    }
+
     public void setIcon(ImageIcon icon) {
         getHelper().onSetIcon(icon);
     }
@@ -86,54 +94,53 @@ public class FlexTextField extends PlaceholderTextField {
         return isPassword;
     }
 
-    public void setIsPassword(boolean password) {
+    public FlexTextField setIsPassword(boolean password) {
         if (isPassword != password) {
             if (password) {
                 revealPasswordEnabled = false;
                 isPasswordRevealed = false;
-                setMaskChar('*');
+                setMaskChar(MASK_CHAR);
             } else {
-                setMaskChar((char)'\0');
+                setMaskChar(NOMASK_CHAR);
             }
             setIcon(null);
-            System.out.printf("Set null 2 icon\n");
             isPassword = password;
         }
+        return this;
     }
 
     public boolean isRevealPasswordEnabled() {
         return revealPasswordEnabled;
     }
 
-    public void setRevealPasswordEnabled(boolean revealPasswordEnabled) {
+    public FlexTextField setRevealPasswordEnabled(boolean revealPasswordEnabled) {
         if (this.revealPasswordEnabled != revealPasswordEnabled) {
             if (revealPasswordEnabled) {
                 setIconRight(true);
-                setIcon(eyeIcon);
-                System.out.printf("Set eye 1 icon\n");
+                setIcon(getEyeIcon());
             } else {
                 setIcon(null);
-                System.out.printf("Set null 3 icon\n");
             }
             this.revealPasswordEnabled = revealPasswordEnabled;
         }
+        return this;
     }
 
     public boolean isPasswordRevealed() {
         return isPasswordRevealed;
     }
 
-    public void setPasswordRevealed(boolean passwordRevealed) {
+    public FlexTextField setPasswordRevealed(boolean passwordRevealed) {
         isPasswordRevealed = passwordRevealed;
+        return this;
     }
 
     private void revealPassword(boolean reveal) {
         if (reveal == isPasswordRevealed) return;
         isPasswordRevealed = reveal;
-        setMaskChar(reveal?(char)'\0':'*');
+        setMaskChar(reveal?NOMASK_CHAR:MASK_CHAR);
         if (revealPasswordEnabled) {
-            setIcon(reveal?noEyeIcon:eyeIcon);
-            System.out.printf("Set %s icon\n", reveal?"no eye 1":"eye 2");
+            setIcon(reveal ? getNoEyeIcon() : getEyeIcon());
         }
     }
 
@@ -143,19 +150,29 @@ public class FlexTextField extends PlaceholderTextField {
         }
         isPasswordRevealed = !isPasswordRevealed;
         if (isPasswordRevealed) {
-            setMaskChar((char)'\0');
-            setIcon(noEyeIcon);
-            System.out.printf("Set no-eye 2 icon\n");
+            setMaskChar(NOMASK_CHAR);
+            setIcon(getNoEyeIcon());
         } else {
-            setMaskChar('*');
-            setIcon(eyeIcon);
-            System.out.printf("Set eye 3 icon\n");
+            setMaskChar(MASK_CHAR);
+            setIcon(getEyeIcon());
         }
     }
 
+    private ImageIcon getEyeIcon() {
+        if (eyeIcon == null) {
+            eyeIcon = new ImageIcon(UIConstants.getResource("eye_256.png"));
+        }
+        return eyeIcon;
+    }
 
+    private ImageIcon getNoEyeIcon() {
+        if (noEyeIcon == null) {
+            noEyeIcon = new ImageIcon(UIConstants.getResource("no-eye_256.png"));
+        }
+        return noEyeIcon;
+    }
 
-    static class IconHelper {
+    class IconHelper {
         private static final int ICON_SPACING = 4;
 
         private Color borderColor;
@@ -163,14 +180,14 @@ public class FlexTextField extends PlaceholderTextField {
         private ImageIcon givenIcon;
         private Icon scaledIcon;
         private Border originalBorder;
-        private final PlaceholderTextField textField;
+//        private final PlaceholderTextField textField;
         private int iconSpacing = ICON_SPACING;
         private boolean iconRight = false;
 
-        private final int height;
+        private int height;
 
         IconHelper(PlaceholderTextField component) {
-            textField = component;
+//            textField = component;
             originalBorder = component.getBorder();
             border = originalBorder;
 
@@ -179,15 +196,14 @@ public class FlexTextField extends PlaceholderTextField {
                 private boolean hitTest(MouseEvent e) {
                     if (scaledIcon == null) return false;
                     int x = e.getX();
-                    Insets iconInsets = originalBorder.getBorderInsets(textField);
-                    int iconHitX0 = iconRight ? textField.getWidth()- scaledIcon.getIconWidth()-iconInsets.right : 0;
-                    int iconHitX1 = iconRight ? textField.getWidth() : scaledIcon.getIconWidth() + iconInsets.left;
+                    Insets iconInsets = originalBorder.getBorderInsets(FlexTextField.this);
+                    int iconHitX0 = iconRight ? FlexTextField.this.getWidth()- scaledIcon.getIconWidth()-iconInsets.right : 0;
+                    int iconHitX1 = iconRight ? FlexTextField.this.getWidth() : scaledIcon.getIconWidth() + iconInsets.left;
                     return (x >= iconHitX0 && x <= iconHitX1);
                 }
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     if (hitTest(e)) {
-                        System.out.printf("Hit at (%d,%d)\n", e.getX(), e.getY());
                         onClicked();
                     } else {
                         super.mouseClicked(e);
@@ -198,7 +214,7 @@ public class FlexTextField extends PlaceholderTextField {
                 public void mouseEntered(MouseEvent e) {
                     super.mouseEntered(e);
                     in = hitTest(e);
-                    textField.setCursor(Cursor.getPredefinedCursor(in ? Cursor.DEFAULT_CURSOR : Cursor.TEXT_CURSOR));
+                    FlexTextField.this.setCursor(Cursor.getPredefinedCursor(in ? Cursor.DEFAULT_CURSOR : Cursor.TEXT_CURSOR));
                 }
 
                 @Override
@@ -207,21 +223,24 @@ public class FlexTextField extends PlaceholderTextField {
                     boolean newIn = hitTest(e);
                     if (newIn != in) {
                         in = newIn;
-                        textField.setCursor(Cursor.getPredefinedCursor(in ? Cursor.DEFAULT_CURSOR : Cursor.TEXT_CURSOR));
+                        FlexTextField.this.setCursor(Cursor.getPredefinedCursor(in ? Cursor.DEFAULT_CURSOR : Cursor.TEXT_CURSOR));
                     }
                 }
             };
             component.addMouseListener(mouseListener);
             component.addMouseMotionListener(mouseListener);
 
-            height = component.getHeight();
+            height = -1;
             ComponentListener resizeListener = new ComponentAdapter() {
                 @Override
                 public void componentResized(ComponentEvent e) {
                     super.componentResized(e);
-                    int h = textField.getFontMetrics(textField.getFont()).getHeight();
-                    System.out.printf("Resized to height %d\n", h);
-                    resetBorder();
+                    int h = FlexTextField.this.getFontMetrics(FlexTextField.this.getFont()).getHeight();
+                    if (h != height) {
+                        IconHelper.this.height = h;
+                        System.out.printf("Resized to height %d\n", h);
+                        resetBorder();
+                    }
                 }
             };
             component.addComponentListener(resizeListener);
@@ -246,12 +265,12 @@ public class FlexTextField extends PlaceholderTextField {
 
         void onPaintComponent(Graphics g) {
             if (scaledIcon != null) {
-                Insets iconInsets = originalBorder.getBorderInsets(textField);
+                Insets iconInsets = originalBorder.getBorderInsets(FlexTextField.this);
                 int iconPaintOffsetX = iconRight ?
-                                       textField.getWidth() - scaledIcon.getIconWidth() - iconInsets.right
+                                       FlexTextField.this.getWidth() - scaledIcon.getIconWidth() - iconInsets.right
                                            - iconSpacing :
                                        iconInsets.left + iconSpacing;
-                scaledIcon.paintIcon(textField, g, iconPaintOffsetX, iconInsets.top);
+                scaledIcon.paintIcon(FlexTextField.this, g, iconPaintOffsetX, iconInsets.top+1);
             }
         }
 
@@ -261,19 +280,20 @@ public class FlexTextField extends PlaceholderTextField {
             if (givenIcon == null) {
                 this.border = border;
             } else {
-                int nw = givenIcon.getIconWidth();
-                int nh = givenIcon.getIconHeight();
-                int h = textField.getFontMetrics(textField.getFont()).getHeight();
-                if (h == 0) h = textField.getPreferredSize().height;
-                if(nh != h)
+                // Optimistically assume the icon is already the desired new height.
+                int newWidth = givenIcon.getIconWidth();
+                int newHeight = givenIcon.getIconHeight();
+                int textFieldHeight = FlexTextField.this.getFontMetrics(FlexTextField.this.getFont()).getHeight() - 1;
+                if (textFieldHeight == 0) textFieldHeight = FlexTextField.this.getPreferredSize().height - 1;
+                if(newHeight != textFieldHeight)
                 {
-                    nh = h;
-                    nw = (givenIcon.getIconWidth() * nh) / givenIcon.getIconHeight();
+                    newHeight = textFieldHeight;
+                    newWidth = (givenIcon.getIconWidth() * newHeight) / givenIcon.getIconHeight();
                 }
 
-                scaledIcon = new ImageIcon(givenIcon.getImage().getScaledInstance(nw, nh, Image.SCALE_SMOOTH));
+                scaledIcon = new ImageIcon(givenIcon.getImage().getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH));
 
-                int w = scaledIcon.getIconWidth() + iconSpacing * 2;
+                int w = newWidth + iconSpacing * 2;
                 int l = iconRight ? 0 : w;
                 int r = iconRight ? w : 0;
                 Border margin = BorderFactory.createMatteBorder(0, l, 0, r, borderColor);
@@ -292,7 +312,7 @@ public class FlexTextField extends PlaceholderTextField {
         }
 
         private void resetBorder() {
-            textField.setBorder(originalBorder);
+            FlexTextField.this.setBorder(originalBorder);
         }
 
         public void onSetIconSpacing(int spacing) {

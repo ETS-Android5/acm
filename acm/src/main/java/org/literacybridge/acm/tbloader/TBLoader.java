@@ -196,7 +196,7 @@ public class TBLoader extends JFrame {
         @Option(name = "--choose", aliases = "-c", usage = "Choose Deployment and/or Package.")
         boolean choices = false;
 
-        @Argument(usage = "Project or ACM name to export.", index = 0, required = true, metaVar = "ACM")
+        @Argument(usage = "Project or ACM name to export.", index = 0, metaVar = "ACM")
         String project;
 
         @Argument(usage = "Serial number prefix, default 'B-'.", index = 1, metaVar = "SRN_PREFIX")
@@ -349,7 +349,7 @@ public class TBLoader extends JFrame {
     private void authenticate() {
         Authenticator authInstance = Authenticator.getInstance();
         authInstance.setLocallyAvailablePrograms(DeploymentsManager.getLocalPrograms());
-        Authenticator.SigninResult result = authInstance.getUserIdentity(this, OFFLINE_EMAIL_CHOICE, CHOOSE_PROGRAM);
+        Authenticator.SigninResult result = authInstance.getUserIdentity(this, newProject, OFFLINE_EMAIL_CHOICE, CHOOSE_PROGRAM);
         if (result == Authenticator.SigninResult.FAILURE) {
             JOptionPane.showMessageDialog(this,
                 "Authentication is required to use the TB-Loader.",
