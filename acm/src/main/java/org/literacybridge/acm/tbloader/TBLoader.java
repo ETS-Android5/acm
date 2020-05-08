@@ -196,6 +196,9 @@ public class TBLoader extends JFrame {
         @Option(name = "--choose", aliases = "-c", usage = "Choose Deployment and/or Package.")
         boolean choices = false;
 
+        @Option(name="--nimbus", usage="Use 'Nimbus' look-and-feel.")
+        boolean nimbus = false;
+
         @Argument(usage = "Project or ACM name to export.", index = 0, metaVar = "ACM")
         String project;
 

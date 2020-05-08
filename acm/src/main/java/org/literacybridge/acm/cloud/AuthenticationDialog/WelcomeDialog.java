@@ -58,21 +58,21 @@ public class WelcomeDialog extends JDialog {
         return email;
     }
 
+    void setEmail(String email) {
+        this.email = email;
+    }
+
     public String getProgram() {
         return program;
     }
 
-    void setEmail(String email) {
-        this.email = email;
+    void setProgram(String program) {
+        this.program = program;
     }
 
     void setPassword(String password) {
         this.password = password;
         this.isSavedPassword = false;
-    }
-
-    void setProgram(String program) {
-        this.program = program;
     }
 
     public boolean isSavedPassword() {
