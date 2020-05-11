@@ -4,6 +4,11 @@
  */
 package org.literacybridge.acm.utils;
 
+import com.github.weisj.darklaf.LafManager;
+import com.github.weisj.darklaf.theme.DarculaTheme;
+import com.github.weisj.darklaf.theme.IntelliJTheme;
+import org.literacybridge.acm.theme.AmplioTheme;
+
 import javax.swing.*;
 import java.awt.Color;
 import java.awt.Component;
@@ -440,6 +445,21 @@ public final class SwingUtils {
                 UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel");
                 // start application
                 System.out.println("Set l&f to metal.");
+                return;
+            }
+            catch (Exception ignored) {
+            }
+        }
+        if (laf.equalsIgnoreCase("darklaf")) {
+            //"com.github.weisj:darklaf-core"
+            try {
+                // select Look and Feel
+                // This returns the preferred theme of the system settings.
+//                LafManager.install(new AmplioTheme());
+                LafManager.install(new IntelliJTheme());
+//                LafManager.setTheme(new DarculaTheme());
+                // start application
+                System.out.printf("Set l&f to %s.\n", LafManager.getTheme().getName());
                 return;
             }
             catch (Exception ignored) {

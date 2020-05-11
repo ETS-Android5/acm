@@ -167,6 +167,9 @@ dependencies {
     compile 'com.amazonaws:aws-java-sdk-cognitoidentity:1.11.228'
     compile 'com.amazonaws:aws-java-sdk-s3:1.11.228'
 
+    // darklaf look and feel
+    compile 'com.github.weisj:darklaf-core:2.1.1'
+    compile 'com.github.weisj:darklaf-theme:2.1.1' // For the themes
 
     compile files(fileTree('3rdparty').include('*.jar'))
 

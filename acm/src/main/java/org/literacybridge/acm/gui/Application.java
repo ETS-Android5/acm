@@ -107,6 +107,7 @@ public class Application extends JXFrame {
 
   private Application(SplashScreen splashScreen) throws IOException {
     super();
+//    setBackground(Color.white);
     this.backgroundColor = getBackground();
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -169,7 +170,7 @@ public class Application extends JXFrame {
     // Workaround for weird bug in seaglass look&feel that causes a
     // java.awt.IllegalComponentStateException when e.g. a combo box
     // in this dialog is clicked on
-    if (bgColor.getAlpha() == 0) {
+    if (bgColor != null && bgColor.getAlpha() == 0) {
       super.setBackground(backgroundColor);
     } else {
       super.setBackground(bgColor);
@@ -253,7 +254,7 @@ public class Application extends JXFrame {
     OsUtils.enableOSXQuitStrategy();
 
       // set look & feel; we use Sea Glass by default.
-      SwingUtils.setLookAndFeel(params.nimbus?"nimbus":"");
+      SwingUtils.setLookAndFeel(params.darklaf?"darklaf":params.nimbus?"nimbus":"");
 
     // String dbDirName = null, repositoryDirName= null;
     // initialize config and generate random ID for this acm instance

@@ -199,6 +199,9 @@ public class TBLoader extends JFrame {
         @Option(name="--nimbus", usage="Use 'Nimbus' look-and-feel.")
         boolean nimbus = false;
 
+        @Option(name="--darklaf", usage="Use 'DarkLaf' look-and-feel.")
+        boolean darklaf = false;
+
         @Argument(usage = "Project or ACM name to export.", index = 0, metaVar = "ACM")
         String project;
 
@@ -277,7 +280,7 @@ public class TBLoader extends JFrame {
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         this.addWindowListener(new WindowEventHandler());
         this.backgroundColor = getBackground();
-        SwingUtils.setLookAndFeel("seaglass");
+        SwingUtils.setLookAndFeel("darklaf");
 
         boolean oldTbs = srnPrefix.equalsIgnoreCase("a-");
         String iconName = oldTbs ? "/tb_loader-OLD-TBs.png" : "/tb_loader.png";

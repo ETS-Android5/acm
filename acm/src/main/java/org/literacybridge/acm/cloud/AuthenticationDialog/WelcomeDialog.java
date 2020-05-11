@@ -140,6 +140,7 @@ public class WelcomeDialog extends JDialog {
         Set<Authenticator.SigninOptions> options,
         Authenticator.CognitoInterface cognitoInterface) {
         super(owner, "Amplio Sign In", ModalityType.DOCUMENT_MODAL);
+        setBackground(Color.white);
         this.cognitoInterface = cognitoInterface;
         this.options = options;
         this.defaultProgram = defaultProgram;

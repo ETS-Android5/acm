@@ -34,6 +34,9 @@ public class CommandLineParams {
   @Option(name="--nimbus", usage="Use 'Nimbus' look-and-feel.")
   public boolean nimbus;
 
+  @Option(name="--darklaf", usage="Use 'DarkLaf' look-and-feel.")
+  public boolean darklaf;
+
   @Argument(required=false)
   public String sharedACM;
 }
