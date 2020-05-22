@@ -545,7 +545,7 @@ class DeploymentsManager {
         void findDeployments() {
             Authenticator authInstance = Authenticator.getInstance();
             ProjectsHelper projectsHelper = authInstance.getProjectsHelper();
-            deploymentsInfo = projectsHelper.getDeploymentInfo(project);
+            deploymentsInfo = projectsHelper.getDeploymentsInfo(project);
             currentDeploymentInfo = deploymentsInfo.values().stream().filter(DeploymentInfo::isCurrent).findAny().orElse(null);
         }
 

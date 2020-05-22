@@ -644,7 +644,7 @@ public class TBLoader extends JFrame {
                     System.out.printf("%s => ", key);
                     key = key.replaceAll("\\\\", "/");
                     System.out.printf("%s\n", key);
-                    if (authInstance.getAwsInterface().uploadS3Object(bucket, key, next)) {
+                    if (authInstance.getAwsInterface().uploadS3Object(bucket, key, next, null)) {
                         next.delete();
                     }
                     Thread.sleep(2000);

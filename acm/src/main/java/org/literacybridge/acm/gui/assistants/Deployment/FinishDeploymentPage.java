@@ -169,8 +169,6 @@ public class FinishDeploymentPage extends AcmAssistantPage<DeploymentContext> {
                     setStatus("Finished.");
                 }
 
-                setComplete();
-
                 UIUtils.setLabelText(currentState, "Click \"Close\" to return to the ACM.");
             }
         };
@@ -264,6 +262,16 @@ public class FinishDeploymentPage extends AcmAssistantPage<DeploymentContext> {
                 tbBuilder.publishDeployment(args);
                 UIUtils.setLabelText(revisionText, String.format(" (revision '%s')", tbBuilder.getRevision()));
                 UIUtils.setVisible(revisionText, true);
+
+                Authenticator.getInstance()
+                    .getProjectsHelper()
+                    .uploadDeployment(tbb.getDeploymentZipFile(),
+                        ACMConfiguration.cannonicalProjectName(acmName),
+                        deploymentName(),
+                        tbb.getRevision(),
+                        (cur,tot)->{
+                            reportState(String.format("Uploading %d of %d", cur, tot));
+                        });
             } else {
                 publishNotification.setVisible(true);
             }
@@ -295,7 +303,9 @@ public class FinishDeploymentPage extends AcmAssistantPage<DeploymentContext> {
         deploymentProperties.setProperty(TBLoaderConstants.DEPLOYMENT_CREATION_DATE, localDate.format(now));
         String userName = Authenticator.getInstance().getUserName();
         String userEmail = Authenticator.getInstance().getuserEmail();
-        String user = (StringUtils.isEmpty(userName)?"":'('+userName+") ") + userEmail;         
+        String user = StringUtils.isEmpty(userName) ?
+                      userEmail :
+                      (userName + " (" + userEmail + ')');
         deploymentProperties.setProperty(TBLoaderConstants.DEPLOYMENT_CREATION_USER, user);
         // Map of language, variant : package
         pkgs.forEach((language, values) -> values.forEach((variant, pkg) ->{

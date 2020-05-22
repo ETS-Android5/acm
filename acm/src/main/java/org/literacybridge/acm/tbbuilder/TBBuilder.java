@@ -104,6 +104,7 @@ public class TBBuilder {
 
     private Consumer<String> statusWriter;
     private String revision;
+    private File deploymentZipFile;
 
     private void reportStatus(String format, Object... args) {
         statusWriter.accept(String.format(format, args));
@@ -115,6 +116,10 @@ public class TBBuilder {
      */
     public String getRevision() {
         return revision;
+    }
+
+    public File getDeploymentZipFile() {
+        return deploymentZipFile;
     }
 
     public File getStagedProgramspecDir() {
@@ -998,8 +1003,8 @@ public class TBBuilder {
 
         String zipSuffix = deploymentName + "-" + revision + ".zip";
         File localContent = new File(stagingDir, "content");
-        ZipUnzip.zip(localContent,
-            new File(publishDistributionDir, "content-" + zipSuffix), true,
+        deploymentZipFile = new File(publishDistributionDir, "content-" + zipSuffix);
+        ZipUnzip.zip(localContent, deploymentZipFile, true,
             deployments.toArray(new String[0]));
 
         // merge csv files

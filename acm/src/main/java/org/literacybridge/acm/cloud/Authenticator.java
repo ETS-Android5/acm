@@ -2,11 +2,13 @@ package org.literacybridge.acm.cloud;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicSessionCredentials;
+import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.cognitoidentity.model.Credentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
@@ -19,6 +21,7 @@ import org.literacybridge.acm.cloud.cognito.CognitoHelper;
 import org.literacybridge.acm.cloud.cognito.CognitoJWTParser;
 import org.literacybridge.acm.config.AccessControl;
 import org.literacybridge.acm.config.HttpUtility;
+import org.literacybridge.core.tbloader.ProgressListener;
 
 import java.awt.Window;
 import java.io.BufferedOutputStream;
@@ -411,21 +414,48 @@ public class Authenticator {
             return true;
         }
 
-        public boolean uploadS3Object(String bucket, String key, File inputFile) {
+        private boolean uploadS3Object(PutObjectRequest request) {
             boolean result = false;
-            if (!isAuthenticated()) return false;
             try {
-                PutObjectRequest request = new PutObjectRequest(bucket, key, inputFile);
-                @SuppressWarnings("unused")
                 PutObjectResult putResult = getS3Client().putObject(request);
-                result = true;
             } catch (Exception ex) {
-                System.out.println("Refreshing session after exception.");
-                refreshSession();
-                // Ignore and return false
-                // ex.printStackTrace();
+                // ignore and return false;
             }
             return result;
+        }
+
+        public boolean uploadS3Object(String bucket,
+            String key,
+            File inputFile,
+            BiConsumer<Long, Long> progressHandler)
+        {
+            long totalBytes = inputFile.length();
+            if (!isAuthenticated()) return false;
+            PutObjectRequest request = new PutObjectRequest(bucket, key, inputFile);
+            if (progressHandler != null) {
+                request.setGeneralProgressListener(progressEvent -> {
+                    progressHandler.accept(progressEvent.getBytesTransferred(), totalBytes);
+                });
+            }
+            return uploadS3Object(request);
+        }
+
+        public boolean uploadS3Object(String bucket,
+            String key,
+            InputStream inputStream,
+            long streamLength,
+            BiConsumer<Long, Long> progressHandler)
+        {
+            if (!isAuthenticated()) return false;
+            ObjectMetadata md = new ObjectMetadata();
+            md.setContentLength(streamLength);
+            PutObjectRequest request = new PutObjectRequest(bucket, key, inputStream, md);
+            if (progressHandler != null) {
+                request.setGeneralProgressListener(progressEvent -> {
+                    progressHandler.accept(progressEvent.getBytesTransferred(), streamLength);
+                });
+            }
+            return uploadS3Object(request);
         }
 
         /**

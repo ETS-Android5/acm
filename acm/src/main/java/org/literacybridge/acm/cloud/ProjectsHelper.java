@@ -4,11 +4,9 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ListObjectsV2Request;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import org.json.simple.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -16,9 +14,6 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static java.util.regex.Pattern.CASE_INSENSITIVE;
 
 public class ProjectsHelper {
     static final String DEPLOYMENTS_BUCKET_NAME = "acm-content-updates";
@@ -29,6 +24,7 @@ public class ProjectsHelper {
         this.identityPersistence = identityPersistence;
     }
 
+    @SuppressWarnings("unused")
     public static class DeploymentInfo {
         String project;         // Like UNICEF-CHPS
         String deploymentName;  // Like UNICEF-CHPS-19-3
@@ -81,12 +77,10 @@ public class ProjectsHelper {
         }
     }
 
-    private Authenticator authInstance = Authenticator.getInstance();
-
-    private Collection<String> projects = null;
+    private final Authenticator authInstance = Authenticator.getInstance();
 
     // Matches deploymentName-suffix.current or .rev. Like TEST-19-2-ab.rev
-    private Pattern markerPattern = Pattern.compile("((\\w+(?:-\\w+)*)-(\\w+))\\.current");
+    private final Pattern markerPattern = Pattern.compile("((\\w+(?:-\\w+)*)-(\\w+))\\.(current|rev)");
 
     /**
      * Get the latest deployment info for the project.
@@ -95,7 +89,7 @@ public class ProjectsHelper {
      * @return A map from Deployment Name to Deployment Info.  Currently, only a single
      * Deployment.
      */
-    public Map<String, DeploymentInfo> getDeploymentInfo(String project) {
+    public Map<String, DeploymentInfo> getDeploymentsInfo(String project) {
         Map<String, DeploymentInfo> deplInfo = new HashMap<>();
 
         AmazonS3 s3Client = authInstance.getAwsInterface().getS3Client();
@@ -141,59 +135,51 @@ public class ProjectsHelper {
         return deplInfo;
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public boolean downloadDeployment(DeploymentInfo deploymentInfo,
         File outputFile,
         BiConsumer<Long, Long> progressHandler)
     {
         if (authInstance.isAuthenticated() && authInstance.isOnline()) {
-            return authInstance.getAwsInterface().downloadS3Object(DEPLOYMENTS_BUCKET_NAME,
-                "projects/" + deploymentInfo.project + "/" + deploymentInfo.getFileName(),
-                outputFile,
-                progressHandler);
+            return authInstance.getAwsInterface()
+                .downloadS3Object(DEPLOYMENTS_BUCKET_NAME,
+                    "projects/" + deploymentInfo.project + "/" + deploymentInfo.getFileName(),
+                    outputFile,
+                    progressHandler);
         }
         return false;
     }
 
-    public Collection<String> getProjects() {
-        if (projects == null) {
-            if (authInstance.isAuthenticated() && authInstance.isOnline()) {
-                // Statistics, configured in AWS Application Gateway
-                String baseURL = "https://y06knefb5j.execute-api.us-west-2.amazonaws.com/Devo";
-                String requestURL = baseURL + "/projects";
-
-                JSONObject jsonResponse = authInstance.getAwsInterface().authenticatedRestCall(requestURL);
-
-                Object o;
-                if (jsonResponse != null) {
-                    o = jsonResponse.get("result");
-                    if (o instanceof Map) {
-                        Object l = ((Map) o).get("values");
-                        if (l instanceof List) {
-                            //noinspection unchecked
-                            projects = ((List<String>) l).stream()
-                                .filter(this::canViewProject)
-                                .collect(Collectors.toList());
-                        }
-                    }
-                }
-                if (projects == null) projects = new ArrayList<>();
-                identityPersistence.saveProjectList(projects);
-            } else {
-                projects = identityPersistence.retrieveProjectList();
-            }
+    /**
+     * Uploads a zip file of a deployment to S3. Creates a revision marker.
+     * @param inputZipFile The file to be uploaded.
+     * @param program to which the deployment belongs.
+     * @param deployment name, like 'DEMO-20-3' (program-year-depl).
+     * @param revision of the deployment, 'a', 'b', ...
+     * @param progressHandler to receive progress notifications.
+     * @return true if uploaded successfully.
+     */
+    public boolean uploadDeployment(File inputZipFile,
+        String program,
+        String deployment,
+        String revision,
+        BiConsumer<Long, Long> progressHandler)
+    {
+        if (authInstance.isAuthenticated() && authInstance.isOnline()) {
+            Authenticator.AwsInterface aws = authInstance.getAwsInterface();
+            String prefix = String.format("projects/%s/%s-%s", program, deployment, revision);
+            boolean zipUploaded = aws.uploadS3Object(DEPLOYMENTS_BUCKET_NAME,
+                    prefix+".zip",
+                    inputZipFile,
+                    progressHandler);
+            ByteArrayInputStream revStream = new ByteArrayInputStream(new byte[0]);
+            boolean revUploaded = aws.uploadS3Object(DEPLOYMENTS_BUCKET_NAME,
+                prefix+".rev",
+                revStream, 0,
+                null);
+            return zipUploaded && revUploaded;
         }
-        return projects;
-    }
-
-    @SuppressWarnings("unchecked")
-    private boolean canViewProject(String project) {
-        if (!authInstance.isAuthenticated()) return false;
-        String viewParam = authInstance.getUserProperty("view", "");
-        String editParam = authInstance.getUserProperty("edit", "");
-        Pattern viewPattern = Pattern.compile(viewParam, CASE_INSENSITIVE);
-        Pattern editPattern = Pattern.compile(editParam, CASE_INSENSITIVE);
-
-        return viewPattern.matcher(project).matches() || editPattern.matcher(project).matches();
+        return false;
     }
 
 }
