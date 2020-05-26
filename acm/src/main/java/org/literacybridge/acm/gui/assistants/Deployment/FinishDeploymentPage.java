@@ -66,6 +66,7 @@ import java.util.stream.Collectors;
 import static java.util.Calendar.YEAR;
 import static org.literacybridge.acm.gui.Assistant.Assistant.PageHelper;
 import static org.literacybridge.acm.utils.EmailHelper.pinkZebra;
+import static org.literacybridge.core.tbloader.TBLoaderUtils.getBytesString;
 
 public class FinishDeploymentPage extends AcmAssistantPage<DeploymentContext> {
 
@@ -263,6 +264,7 @@ public class FinishDeploymentPage extends AcmAssistantPage<DeploymentContext> {
                 UIUtils.setLabelText(revisionText, String.format(" (revision '%s')", tbBuilder.getRevision()));
                 UIUtils.setVisible(revisionText, true);
 
+                long start = System.currentTimeMillis();
                 Authenticator.getInstance()
                     .getProjectsHelper()
                     .uploadDeployment(tbb.getDeploymentZipFile(),
@@ -270,7 +272,22 @@ public class FinishDeploymentPage extends AcmAssistantPage<DeploymentContext> {
                         deploymentName(),
                         tbb.getRevision(),
                         (cur,tot)->{
-                            reportState(String.format("Uploading %d of %d", cur, tot));
+                            // Special case for 0-byte files.
+                            float pct = tot==0 ? 100.0f : (cur*100.0f)/tot;
+                            long elapsedMillis = System.currentTimeMillis() - start;
+                            long hours = elapsedMillis / (3600000);
+                            long minutes = (elapsedMillis % 3600000) / 60000;
+                            long seconds = (elapsedMillis % 60000) / 1000;
+                            String time;
+                            if (hours > 0)
+                                time = String.format("%d:%02d:%02d", hours, minutes, seconds);
+                            else if (minutes > 0)
+                                time = String.format("%d:%02d.%03d", minutes, seconds, elapsedMillis%1000);
+                            else
+                                time = String.format("%2d.%03d", seconds, elapsedMillis%1000);
+                            StringBuilder elapsed = new StringBuilder();
+                            String msg = String.format("Uploaded %,d of %,d (%.0f%%) in %s", cur, tot, pct, time);
+                            reportState(msg);
                         });
             } else {
                 publishNotification.setVisible(true);

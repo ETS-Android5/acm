@@ -414,8 +414,19 @@ public class Authenticator {
             return true;
         }
 
-        private boolean uploadS3Object(PutObjectRequest request) {
+        private boolean uploadS3Object(PutObjectRequest request,
+            BiConsumer<Long, Long> progressHandler) {
             boolean result = false;
+            if (progressHandler != null) {
+                long totalLength = request.getFile() != null ?
+                                   request.getFile().length() :
+                                   request.getMetadata().getContentLength();
+                long[] cumulativeLength = {0};
+                request.setGeneralProgressListener(progressEvent -> {
+                    cumulativeLength[0] += progressEvent.getBytesTransferred();
+                    progressHandler.accept(cumulativeLength[0], totalLength);
+                });
+            }
             try {
                 PutObjectResult putResult = getS3Client().putObject(request);
             } catch (Exception ex) {
@@ -432,12 +443,7 @@ public class Authenticator {
             long totalBytes = inputFile.length();
             if (!isAuthenticated()) return false;
             PutObjectRequest request = new PutObjectRequest(bucket, key, inputFile);
-            if (progressHandler != null) {
-                request.setGeneralProgressListener(progressEvent -> {
-                    progressHandler.accept(progressEvent.getBytesTransferred(), totalBytes);
-                });
-            }
-            return uploadS3Object(request);
+            return uploadS3Object(request, progressHandler);
         }
 
         public boolean uploadS3Object(String bucket,
@@ -450,12 +456,7 @@ public class Authenticator {
             ObjectMetadata md = new ObjectMetadata();
             md.setContentLength(streamLength);
             PutObjectRequest request = new PutObjectRequest(bucket, key, inputStream, md);
-            if (progressHandler != null) {
-                request.setGeneralProgressListener(progressEvent -> {
-                    progressHandler.accept(progressEvent.getBytesTransferred(), streamLength);
-                });
-            }
-            return uploadS3Object(request);
+            return uploadS3Object(request, progressHandler);
         }
 
         /**
