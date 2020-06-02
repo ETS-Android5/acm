@@ -345,13 +345,18 @@ public class AudioItemRepository {
      * corresponding a18 file
      */
     private void cleanStaleAudioFiles(AudioItem audioItem) {
-        File a18 = resolveFile(audioItem, AudioFormat.A18, false);
-        if (a18.exists()) {
+        // Get the canonical audio file, if any. That will be a .wav if one exists, else a .a18
+        // if one exists.
+
+        // TODO: get the actual canonical file.
+        AudioFormat canonicalFormat = AudioFormat.A18;
+        File canonicalFile = resolveFile(audioItem, canonicalFormat, false);
+        if (canonicalFile.exists()) {
             Arrays.stream(AudioFormat.values())
-                .filter(format -> format != AudioFormat.A18)
+                .filter(format -> format != canonicalFormat)
                 .forEach(format -> {
                     File file = resolveFile(audioItem, format, true);
-                    if (file.exists() && file.lastModified() < a18.lastModified()) {
+                    if (file.exists() && file.lastModified() < canonicalFile.lastModified()) {
                         // a18 file is newer - delete it, it will get recreated from the a18
                         // in convert()
                         file.delete();

@@ -201,7 +201,7 @@ public class AudioImporter {
      */
     public void importFiles(Collection<File> files, Category category, BiFunction<Integer, Integer, Boolean> progress) {
         List<File> filesToImport = new LinkedList<>();
-        files.forEach(f -> gatherFiles(f, true, filesToImport));
+        files.forEach(f -> gatherFiles(f, filesToImport));
         int numImported = 0;
         for (File f : filesToImport) {
             try {
@@ -228,24 +228,22 @@ public class AudioImporter {
         return metadata;
     }
 
-    private void gatherFiles(File dir, boolean recursive, List<File> filesToImport) {
+    private void gatherFiles(File dir, List<File> filesToImport) {
         if (!dir.isDirectory()) {
             filesToImport.add(dir);
         } else {
             File[] files = dir.listFiles(audioFilesFilter);
             Collections.addAll(filesToImport, files);
 
-            if (recursive) {
-                File[] subdirs = dir.listFiles(new FileFilter() {
-                    @Override
-                    public boolean accept(File pathname) {
-                        return pathname.isDirectory();
-                    }
-                });
-
-                for (File subDir : subdirs) {
-                    gatherFiles(subDir, recursive, filesToImport);
+            File[] subdirs = dir.listFiles(new FileFilter() {
+                @Override
+                public boolean accept(File pathname) {
+                    return pathname.isDirectory();
                 }
+            });
+
+            for (File subDir : subdirs) {
+                gatherFiles(subDir, filesToImport);
             }
         }
     }
@@ -269,6 +267,10 @@ public class AudioImporter {
      * as it is imported.
      */
     public interface AudioItemProcessor {
+        enum DuplicateDisposition {REPLACE, IGNORE};
         void process(AudioItem item);
+        default DuplicateDisposition handleDuplicate(AudioItem item) {
+            return DuplicateDisposition.IGNORE;
+        }
     }
 }
