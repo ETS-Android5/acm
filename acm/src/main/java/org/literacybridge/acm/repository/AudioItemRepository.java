@@ -12,6 +12,7 @@ import org.literacybridge.acm.audioconverter.api.OggFormat;
 import org.literacybridge.acm.audioconverter.api.WAVFormat;
 import org.literacybridge.acm.audioconverter.converters.BaseAudioConverter.ConversionException;
 import org.literacybridge.acm.config.ACMConfiguration;
+import org.literacybridge.acm.config.DBConfiguration;
 import org.literacybridge.acm.store.AudioItem;
 import org.literacybridge.acm.store.Category;
 import org.literacybridge.acm.store.LBMetadataSerializer;
@@ -54,9 +55,38 @@ public class AudioItemRepository {
         }
     }
 
+
+    public static AudioItemRepository buildAudioItemRepository(DBConfiguration dbConfiguration) {
+        String wavExt = "." + AudioItemRepository.AudioFormat.WAV.getFileExtension();
+        FileSystemGarbageCollector fsgc = new FileSystemGarbageCollector(
+            dbConfiguration.getCacheSizeInBytes(),
+            (file, name) -> name.toLowerCase().endsWith(wavExt));
+        // The localCacheRepository lives in ~/LiteracyBridge/ACM/cache/ACM-FOO. It is used for all
+        // non-A18 files. When .wav files (but not, say, mp3s) exceed max cache size, they'll be gc-ed.
+        // The localCacheRepository lives in ~/LiteracyBridge/ACM/cache/ACM-FOO. It is used for all
+        // non-A18 files. When .wav files (but not, say, mp3s) exceed max cache size, they'll be gc-ed.
+        FileSystemRepository localCacheRepository = new FileSystemRepository(dbConfiguration.getLocalCacheDirectory(), fsgc);
+        // If there is no sandbox directory, all A18s are read from and written to this directory. If there
+        // IS a sandbox directory, then A18s are written there, and read from here if they're not in the
+        // sandbox. (That behaviour is broken because there is no mechanism to clean out stale items from
+        // the sandbox.)
+        FileSystemRepository globalSharedRepository = new FileSystemRepository(dbConfiguration.getGlobalRepositoryDirectory());
+        // If the ACM is opened in "sandbox" mode, all A18s are written here. A18s are read from here if
+        // present, but read from the global shared repository if absent from the sandbox. Note that
+        // if not sandboxed, this one will be null.
+        FileSystemRepository sandboxRepository
+            = dbConfiguration.isSandboxed() ? new FileSystemRepository(dbConfiguration.getSandboxDirectory()) : null;
+
+        // The caching repository directs resolve requests to one of the three above file based
+        // repositories.
+        CachingRepository cachingRepository
+            = new CachingRepository(localCacheRepository, globalSharedRepository, sandboxRepository);
+        return new AudioItemRepository(cachingRepository);
+    }
+
     private final CachingRepository audioFileRepository;
 
-    public AudioItemRepository(CachingRepository audioFileRepository) {
+    private AudioItemRepository(CachingRepository audioFileRepository) {
         this.audioFileRepository = audioFileRepository;
     }
 

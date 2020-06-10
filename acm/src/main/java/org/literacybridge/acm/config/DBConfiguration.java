@@ -160,7 +160,7 @@ public class DBConfiguration { //extends Properties {
    * ~/Dropbox/ACM-FOO/content
    * @return The File object for the content directory.
    */
-  File getGlobalRepositoryDirectory() {
+  public File getGlobalRepositoryDirectory() {
     if (globalRepositoryDirectory == null) {
       // ~/Dropbox/ACM-DEMO/content
       globalRepositoryDirectory = new File(getSharedACMDirectory(), Constants.RepositoryHomeDir);
@@ -173,7 +173,7 @@ public class DBConfiguration { //extends Properties {
      * ~/LiteracyBridge/ACM/cache/ACM-FOO
      * @return
      */
-  File getLocalCacheDirectory() {
+    public File getLocalCacheDirectory() {
     if (localCacheDirectory == null) {
       // ~/LiteracyBridge/ACM/cache/ACM-DEMO
       localCacheDirectory = new File(getHomeAcmDirectory(),
@@ -187,7 +187,7 @@ public class DBConfiguration { //extends Properties {
      * ~/LiteracyBridge/ACM/temp/ACM-FOO/content
      * @return The File object for the sandbox directory.
      */
-    File getSandboxDirectory() {
+    public File getSandboxDirectory() {
         File fSandbox = null;
         if (isSandboxed()) {
             fSandbox = new File(getTempACMsDirectory(),
@@ -382,7 +382,7 @@ public class DBConfiguration { //extends Properties {
         }
     }
 
-    long getCacheSizeInBytes() {
+    public long getCacheSizeInBytes() {
     long size = Constants.DEFAULT_CACHE_SIZE_IN_BYTES;
     String value = dbProperties.getProperty(Constants.CACHE_SIZE_PROP_NAME);
     if (value != null) {
@@ -615,29 +615,7 @@ public class DBConfiguration { //extends Properties {
             userHasWriteAccess(user),
             AccessControl.isOnline()));
 
-        String wavExt = "." + AudioItemRepository.AudioFormat.WAV.getFileExtension();
-        FileSystemGarbageCollector fsgc = new FileSystemGarbageCollector(
-            getCacheSizeInBytes(),
-            (file, name) -> name.toLowerCase().endsWith(wavExt));
-        // The localCacheRepository lives in ~/LiteracyBridge/ACM/cache/ACM-FOO. It is used for all
-        // non-A18 files. When .wav files (but not, say, mp3s) exceed max cache size, they'll be gc-ed.
-        FileSystemRepository localCacheRepository = new FileSystemRepository(getLocalCacheDirectory(), fsgc);
-        // If there is no sandbox directory, all A18s are read from and written to this directory. If there
-        // IS a sandbox directory, then A18s are written there, and read from here if they're not in the
-        // sandbox. (That behaviour is broken because there is no mechanism to clean out stale items from
-        // the sandbox.)
-        FileSystemRepository globalSharedRepository = new FileSystemRepository(getGlobalRepositoryDirectory());
-        // If the ACM is opened in "sandbox" mode, all A18s are written here. A18s are read from here if
-        // present, but read from the global shared repository if absent from the sandbox. Note that
-        // if not sandboxed, this one will be null.
-        FileSystemRepository sandboxRepository
-            = isSandboxed() ? new FileSystemRepository(getSandboxDirectory()) : null;
-
-        // The caching repository directs resolve requests to one of the three above file based
-        // repositories.
-        CachingRepository cachingRepository
-            = new CachingRepository(localCacheRepository, globalSharedRepository, sandboxRepository);
-        setRepository(new AudioItemRepository(cachingRepository));
+        setRepository(AudioItemRepository.buildAudioItemRepository(this));
     }
 
 
