@@ -59,7 +59,7 @@ public class ForgotPasswordCard extends CardContent {
 
         Box hBox = Box.createHorizontalBox();
         hBox.add(new JLabel("Remembered your password? "));
-        ActionLabel signIn = new ActionLabel("Go back to sign in");
+        ActionLabel signIn = new ActionLabel("Go back to sign in.");
         signIn.addActionListener(this::onCancel);
         hBox.add(signIn);
         dialogPanel.add(hBox, gbc.withFill(NONE));
@@ -73,6 +73,7 @@ public class ForgotPasswordCard extends CardContent {
 
     private void onOk(ActionEvent actionEvent) {
         welcomeDialog.setUsername(emailField.getText());
+        welcomeDialog.setEmail(emailField.getText());
         welcomeDialog.clearMessage();
         // Comment out next line to NOT reset the password, to test the GUI aspect of the reset dialog.
         welcomeDialog.cognitoInterface.resetPassword(emailField.getText());

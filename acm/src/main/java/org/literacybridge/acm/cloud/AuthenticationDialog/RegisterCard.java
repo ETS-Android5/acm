@@ -41,14 +41,14 @@ public class RegisterCard extends CardContent {
         // Email name
         emailField = new FlexTextField();
         emailField.setFont(getTextFont());
-        emailField.setPlaceholder("Email Address");
+        emailField.setPlaceholder("Enter your email address");
         emailField.getDocument().addDocumentListener(passwordDocListener);
         dialogPanel.add(emailField, gbc);
 
         // Password
         passwordField = new FlexTextField();
         passwordField.setFont(getTextFont());
-        passwordField.setPlaceholder("Password");
+        passwordField.setPlaceholder("Your chosen password");
         passwordField.setIsPassword(true).setRevealPasswordEnabled(true);
         passwordField.getDocument().addDocumentListener(passwordDocListener);
         dialogPanel.add(passwordField, gbc);
@@ -116,6 +116,7 @@ public class RegisterCard extends CardContent {
             welcomeDialog.setMessage(signUpResult);
             return;
         }
+        welcomeDialog.setEmail(emailField.getText());
         welcomeDialog.setUsername(username);
         welcomeDialog.setPassword(passwordField.getText());
         welcomeDialog.gotoConfirmationCard();

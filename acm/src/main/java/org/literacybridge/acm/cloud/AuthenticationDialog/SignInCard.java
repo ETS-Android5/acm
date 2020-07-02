@@ -46,7 +46,7 @@ public class SignInCard extends CardContent {
         emailField = new FlexTextField();
         emailField.setFont(getTextFont());
         emailField.setIcon(getPersonIcon());
-        emailField.setPlaceholder("Email Address");
+        emailField.setPlaceholder("Enter your email address");
         emailField.addKeyListener(textKeyListener);
         emailField.getDocument().addDocumentListener(textDocumentListener);
         dialogPanel.add(emailField, gbc);
@@ -55,7 +55,7 @@ public class SignInCard extends CardContent {
         passwordField = new FlexTextField();
         passwordField.setFont(getTextFont());
         passwordField.setIsPassword(true);
-        passwordField.setPlaceholder("Password");
+        passwordField.setPlaceholder("Enter your password");
         passwordField.addKeyListener(textKeyListener);
         passwordField.getDocument().addDocumentListener(textDocumentListener);
         dialogPanel.add(passwordField, gbc);
