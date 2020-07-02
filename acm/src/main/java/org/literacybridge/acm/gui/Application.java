@@ -129,7 +129,7 @@ public class Application extends JXFrame {
     Authenticator authInstance = Authenticator.getInstance();
     String greeting = authInstance.getUserProperty("custom:greeting", null);
     if (StringUtils.isEmpty(greeting)) {
-      greeting = String.format("Hello, %s", authInstance.getUserName());
+      greeting = String.format("Hello, %s", authInstance.getUserEmail());
     }
     String sandboxWarning = (ACMConfiguration.getInstance().getCurrentDB().isSandboxed()) ?
         "  --  CHANGES WILL *NOT* BE SAVED!":"";
@@ -312,9 +312,6 @@ public class Application extends JXFrame {
                   + " MB disk space and a cleanup is recommended. Perform cleanup?",
               "WAV Cache", JOptionPane.YES_NO_OPTION,
               JOptionPane.QUESTION_MESSAGE, null, null, JOptionPane.YES_OPTION);
-          JOptionPane.showMessageDialog(null,
-              "Not enough memory available for JVM. Please make sure your"
-                  + " java command contains the argument -XMX512m (or more).");
 
           if (answer == JOptionPane.YES_OPTION) {
             ACMConfiguration.getInstance().getCurrentDB().getRepository().gc();
@@ -370,7 +367,7 @@ public class Application extends JXFrame {
     if (Runtime.getRuntime().maxMemory() < 400 * 1024 * 1024) {
       JOptionPane.showMessageDialog(null,
           "Not enough memory available for JVM. Please make sure your"
-              + " java command contains the argument -XMX512m (or more).");
+              + " java command contains the argument -Xmx512m (or more).");
       System.exit(0);
     }
 

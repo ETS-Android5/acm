@@ -127,11 +127,11 @@ public class Authenticator {
         return AccessControl.isOnline();
     }
 
-    public String getUserName() {
+    private String getUserName() {
         return userName;
     }
 
-    public String getuserEmail() {
+    public String getUserEmail() {
         return userEmail;
     }
 
@@ -472,11 +472,11 @@ public class Authenticator {
          * authenticationInfo with the info returned by a successful sign-in.
          * credentials with the credentials returned by a successful sign-in.
          *
-         * @param username or email address.
+         * @param usernameOrEmail username or email address.
          * @param password of the user id.
          */
-        public void authenticate(String username, String password) {
-            AuthenticationHelper.AuthenticationResult validationResult = cognitoHelper.ValidateUser(username, password);
+        public void authenticate(String usernameOrEmail, String password) {
+            AuthenticationHelper.AuthenticationResult validationResult = cognitoHelper.ValidateUser(usernameOrEmail, password);
             parseAuthenticationResult(validationResult);
         }
 
@@ -495,10 +495,10 @@ public class Authenticator {
          * Note: This does not actually reset any passwords, only sends the code to allow the
          * user to reset their password.
          *
-         * @param username that needs a password reset.
+         * @param usernameOrEmail username or email that needs a password reset.
          */
-        public void resetPassword(String username) {
-            cognitoHelper.ResetPassword(username);
+        public void resetPassword(String usernameOrEmail) {
+            cognitoHelper.ResetPassword(usernameOrEmail);
         }
 
         /**
@@ -506,12 +506,12 @@ public class Authenticator {
          * associated email address, and a new password, sets the password to the new value (if
          * it is a valid password, of course).
          *
-         * @param username of the password to reset.
+         * @param usernameOrEmail username or email of the password to reset.
          * @param password the new password.
          * @param pin      reset code sent via email.
          */
-        public void updatePassword(String username, String password, String pin) {
-            cognitoHelper.UpdatePassword(username, password, pin);
+        public void updatePassword(String usernameOrEmail, String password, String pin) {
+            cognitoHelper.UpdatePassword(usernameOrEmail, password, pin);
         }
 
         public String signUpUser(String username,

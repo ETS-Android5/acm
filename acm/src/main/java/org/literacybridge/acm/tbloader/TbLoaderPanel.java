@@ -668,7 +668,7 @@ public class TbLoaderPanel extends JPanel {
         Authenticator authInstance = Authenticator.getInstance();
         String greeting = authInstance.getUserProperty("custom:greeting", null);
         if (StringUtils.isEmpty(greeting)) {
-            greeting = String.format("Hello, <b>%s</b>", authInstance.getUserName());
+            greeting = String.format("Hello, <b>%s</b>", authInstance.getUserEmail());
         } else {
             greeting = "<b>" + greeting + "</b>";
         }

@@ -38,7 +38,7 @@ public class ProgramCard extends CardContent {
     private final JList<String> choicesList;
     private final JCheckBox forceSandbox;
     private final JScrollPane choicesListScrollPane;
-    private List<String> updateAllowed = new ArrayList<>();
+    private List<String> programsAllowingUpdates = new ArrayList<>();
 
     public ProgramCard(WelcomeDialog welcomeDialog,
         WelcomeDialog.Cards panel)
@@ -132,14 +132,14 @@ public class ProgramCard extends CardContent {
             // If updating (not sandboxing) is an option, determine which ACMs will be sandbox
             // only, and which allow a choice.
             if (welcomeDialog.options.contains(Authenticator.SigninOptions.OFFER_DEMO_MODE)) {
-                updateAllowed = acmNames.stream()
-                    .filter(name->{
+                programsAllowingUpdates = acmNames.stream()
+                                                  .filter(name->{
                         Set<String> roles = Arrays.stream(programs.getOrDefault(name, ALL_ROLES).split(","))
                             .collect(Collectors.toSet());
                         roles.retainAll(updatingRoles);
                         return roles.size()>0;
                     })
-                    .collect(Collectors.toList());
+                                                  .collect(Collectors.toList());
             }
         } else {
             acmNames = Authenticator.getInstance().getLocallyAvailablePrograms();
@@ -149,7 +149,7 @@ public class ProgramCard extends CardContent {
 
         // If there are no choices to be made, either program or sandbox, we're done.
         // - Only one program, not updatable, matches default (if any)
-        if (acmNames.size() == 1 && !updateAllowed.contains(acmNames.get(0)) &&
+        if (acmNames.size() == 1 && !programsAllowingUpdates.contains(acmNames.get(0)) &&
             (StringUtils.isBlank(welcomeDialog.defaultProgram) ||
                 acmNames.get(0).equals(welcomeDialog.defaultProgram))) {
             choicesList.setSelectedIndex(0); // so onOk() can find the proper value.
@@ -207,7 +207,7 @@ public class ProgramCard extends CardContent {
         okButton.setEnabled(haveSelection);
         setListBorder();
         if (haveSelection) {
-            boolean canUpdate = updateAllowed.contains(selectedProgram);
+            boolean canUpdate = programsAllowingUpdates.contains(selectedProgram);
             if (canUpdate) {
                 boolean suggestSandbox = welcomeDialog.options.contains(Authenticator.SigninOptions.SUGGEST_DEMO_MODE);
                 forceSandbox.setEnabled(true);

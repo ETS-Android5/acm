@@ -47,11 +47,11 @@ public class WelcomeDialog extends JDialog {
         return success;
     }
 
-    public String getUsername() {
+    String getUsername() {
         return username;
     }
 
-    public void setUsername(String username) {
+    void setUsername(String username) {
         this.username = username;
     }
 
@@ -90,7 +90,7 @@ public class WelcomeDialog extends JDialog {
     enum Cards {
         NullCard(100, CardContent::new),
         SignInCard(org.literacybridge.acm.cloud.AuthenticationDialog.SignInCard.CARD_HEIGHT, SignInCard::new),
-        SignUpCard(org.literacybridge.acm.cloud.AuthenticationDialog.SignUpCard.CARD_HEIGHT, SignUpCard::new),
+        SignUpCard(RegisterCard.CARD_HEIGHT, RegisterCard::new),
         ForgotPasswordCard(org.literacybridge.acm.cloud.AuthenticationDialog.ForgotPasswordCard.CARD_HEIGHT, ForgotPasswordCard::new),
         ResetCard(org.literacybridge.acm.cloud.AuthenticationDialog.ResetCard.CARD_HEIGHT, ResetCard::new),
         ConfirmCard(org.literacybridge.acm.cloud.AuthenticationDialog.ConfirmCard.CARD_HEIGHT, ConfirmCard::new),

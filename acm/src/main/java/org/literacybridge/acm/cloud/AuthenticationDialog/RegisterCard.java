@@ -13,18 +13,16 @@ import java.awt.event.ActionEvent;
 
 import static org.literacybridge.acm.gui.Assistant.AssistantPage.getGBC;
 
-public class SignUpCard extends CardContent {
-    private static final String DIALOG_TITLE = "Create User ID";
-    protected static final int CARD_HEIGHT = 635;
+public class RegisterCard extends CardContent {
+    private static final String DIALOG_TITLE = "Register User";
+    protected static final int CARD_HEIGHT = 550;
 
-    private final FlexTextField usernameField;
     private final FlexTextField emailField;
-    private final FlexTextField phoneNumberField;
     private final FlexTextField passwordField;
     private final PanelButton createAccount;
     private final PanelButton haveCode;
 
-    public SignUpCard(WelcomeDialog welcomeDialog, WelcomeDialog.Cards panel) {
+    public RegisterCard(WelcomeDialog welcomeDialog, WelcomeDialog.Cards panel) {
         super(welcomeDialog, DIALOG_TITLE, panel);
         JPanel dialogPanel = this;
         // The GUI
@@ -36,17 +34,9 @@ public class SignUpCard extends CardContent {
         JLabel logoLabel = new JLabel(getScaledLogo());
         dialogPanel.add(logoLabel, gbc);
 
-        dialogPanel.add(new JLabel("<html>Pick a user name, enter your email address, and optional phone number " +
-            "(format +18885551212), and a password, and click Create User ID. You will be taken to a new screen in which to " +
-            "enter a verification code that you will receive by email. If you already have the code, click Have Code."), gbc);
-
-        // User name
-        usernameField = new FlexTextField();
-        usernameField.setFont(getTextFont());
-        usernameField.setIcon(getPersonIcon());
-        usernameField.setPlaceholder("Desired user name");
-        usernameField.getDocument().addDocumentListener(passwordDocListener);
-        dialogPanel.add(usernameField, gbc);
+        dialogPanel.add(new JLabel("<html>Enter your email address and a password, and click \"Register User\". " +
+            "You will be taken to a new screen in which to " +
+            "enter a verification code that you will receive by email."), gbc);
 
         // Email name
         emailField = new FlexTextField();
@@ -54,13 +44,6 @@ public class SignUpCard extends CardContent {
         emailField.setPlaceholder("Email Address");
         emailField.getDocument().addDocumentListener(passwordDocListener);
         dialogPanel.add(emailField, gbc);
-
-        // Phone number
-        phoneNumberField = new FlexTextField();
-        phoneNumberField.setFont(getTextFont());
-        phoneNumberField.setPlaceholder("Phone number (optional)");
-        phoneNumberField.getDocument().addDocumentListener(passwordDocListener);
-        dialogPanel.add(phoneNumberField, gbc);
 
         // Password
         passwordField = new FlexTextField();
@@ -79,7 +62,7 @@ public class SignUpCard extends CardContent {
 
         // Buttons.
         Box hBox = Box.createHorizontalBox();
-        createAccount = new PanelButton("Create User ID");
+        createAccount = new PanelButton("Register User");
         createAccount.setFont(getTextFont());
         Insets padding = createAccount.getPadding();
         padding.left = padding.right = 8;
@@ -97,6 +80,9 @@ public class SignUpCard extends CardContent {
         haveCode.setBgColorPalette(AMPLIO_GREEN);
         haveCode.addActionListener(this::haveCode);
         haveCode.setEnabled(false);
+
+        haveCode.setVisible(false);
+
         hBox.add(haveCode);
 
         hBox.add(Box.createHorizontalGlue());
@@ -120,16 +106,17 @@ public class SignUpCard extends CardContent {
 
     private void onCreate(ActionEvent actionEvent) {
         welcomeDialog.clearMessage();
-        String signUpResult = welcomeDialog.cognitoInterface.signUpUser(usernameField.getText(),
+        String username = emailField.getText().replace('@', '.');
+        String signUpResult = welcomeDialog.cognitoInterface.signUpUser(username,
             passwordField.getText(),
             emailField.getText(),
-            phoneNumberField.getText());
+            "");
 
         if (signUpResult != null) {
             welcomeDialog.setMessage(signUpResult);
             return;
         }
-        welcomeDialog.setUsername(usernameField.getText());
+        welcomeDialog.setUsername(username);
         welcomeDialog.setPassword(passwordField.getText());
         welcomeDialog.gotoConfirmationCard();
     }
@@ -153,13 +140,11 @@ public class SignUpCard extends CardContent {
     @Override
     void onShown() {
         super.onShown();
-        usernameField.setText(null);
         passwordField.setText(null);
         passwordField.setRevealPasswordEnabled(true).setPasswordRevealed(false);
         emailField.setText(null);
-        phoneNumberField.setText(null);
-        usernameField.setRequestFocusEnabled(true);
-        usernameField.requestFocusInWindow();
+        emailField.setRequestFocusEnabled(true);
+        emailField.requestFocusInWindow();
     }
 
     /**
@@ -169,12 +154,11 @@ public class SignUpCard extends CardContent {
     @SuppressWarnings("FieldCanBeLocal")
     private final DocumentListener passwordDocListener = new DocumentListener() {
         private void check() {
-            String name = usernameField.getText();
             String p1 = passwordField.getText();
             String email = emailField.getText();
             boolean pValid = PASSWORD_PATTERN.matcher(p1).matches();
-            createAccount.setEnabled(name.length() > 0 && pValid  && email.length() > 5);
-            haveCode.setEnabled(name.length() > 0);
+            createAccount.setEnabled(pValid  && email.length() > 5);
+            haveCode.setEnabled(email.length() > 0);
         }
 
         @Override
