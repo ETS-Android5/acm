@@ -68,6 +68,7 @@ public class TBLoader extends JFrame {
     private static final Logger LOG = Logger.getLogger(TBLoader.class.getName());
 
     private static TBLoader tbLoader;
+    public final TbLoaderArgs tbArgs;
     private File deploymentDir;
 
     public static TBLoader getApplication() {
@@ -210,6 +211,7 @@ public class TBLoader extends JFrame {
     }
 
     private TBLoader(TbLoaderArgs tbArgs) {
+        this.tbArgs = tbArgs;
         this.newProject = ACMConfiguration.cannonicalProjectName(tbArgs.project);
 
         applicationWindow = this;
@@ -309,7 +311,9 @@ public class TBLoader extends JFrame {
             newProject,
             /*LOCAL_OR_S3,*/
             OFFLINE_EMAIL_CHOICE,
-            CHOOSE_PROGRAM);
+            CHOOSE_PROGRAM,
+            tbArgs.autoGo?NO_WAIT:NOP
+            );
         if (result == Authenticator.LoginResult.FAILURE) {
             JOptionPane.showMessageDialog(this,
                 "Authentication is required to use the TB-Loader.",
@@ -423,6 +427,7 @@ public class TBLoader extends JFrame {
             .withForceFirmwareListener(this::onForceFirmwareChanged)
             .withForceSrnListener(this::onForceSrnChanged)
             .withTbIdStrategy(tbIdStrategy)
+//            .withUpdateTb2FirmwareListener(this::onUpdateTb2Firmware)
             .withAllowPackageChoice(allowPackageChoice);
 
         tbLoaderPanel = builder.build();
@@ -442,6 +447,13 @@ public class TBLoader extends JFrame {
         fillFirmwareVersion();
 
         setVisible(true);
+    }
+
+    private Boolean onUpdateTb2Firmware() {
+        File firmware = new File("c:/Users/bill/Downloads/TBookRev2b.hex");
+        Tb2FirmwareUpdater updater =  new Tb2FirmwareUpdater(this, firmware);
+        updater.setVisible(true);
+        return updater.isOk();
     }
 
     // Configuration settings.

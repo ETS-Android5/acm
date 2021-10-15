@@ -37,6 +37,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static java.awt.GridBagConstraints.BOTH;
 import static java.awt.GridBagConstraints.CENTER;
@@ -62,6 +63,7 @@ public class TbLoaderPanel extends JPanel {
         private Consumer<TBDeviceInfo> deviceListener;
         private Consumer<Boolean> forceFirmwareListener;
         private Consumer<Boolean> forceSrnListener;
+        private Supplier<Boolean> updateTb2FirmwareListener;
         private TBLoader.TB_ID_STRATEGY tbIdStrategy;
         private boolean allowPackageChoice;
 
@@ -74,6 +76,7 @@ public class TbLoaderPanel extends JPanel {
         public Builder withDeviceListener(Consumer<TBDeviceInfo> deviceListener) {this.deviceListener = deviceListener; return this;}
         public Builder withForceFirmwareListener(Consumer<Boolean> forceFirmwareListener) {this.forceFirmwareListener = forceFirmwareListener; return this;}
         public Builder withForceSrnListener(Consumer<Boolean> forceSrnListener) {this.forceSrnListener = forceSrnListener; return this;}
+        public Builder withUpdateTb2FirmwareListener(Supplier<Boolean> updateTb2FirmwareListener) {this.updateTb2FirmwareListener = updateTb2FirmwareListener; return this;}
 
         public Builder withTbIdStrategy(TBLoader.TB_ID_STRATEGY tbIdStrategy) {this.tbIdStrategy = tbIdStrategy; return this;}
         public Builder withAllowPackageChoice(boolean allowPackageChoice) {this.allowPackageChoice = allowPackageChoice; return this;}
@@ -82,6 +85,8 @@ public class TbLoaderPanel extends JPanel {
             return new TbLoaderPanel(this);
         }
     }
+
+    private final Builder builder;
 
     private final ProgramSpec programSpec;
     private final String[] packagesInDeployment;
@@ -144,6 +149,7 @@ public class TbLoaderPanel extends JPanel {
     private final ProgressDisplayManager progressDisplayManager = new ProgressDisplayManager(this);
 
     public TbLoaderPanel(Builder builder) {
+        this.builder = builder;
         this.programSpec = builder.programSpec;
         this.packagesInDeployment = builder.packagesInDeployment;
         this.packageNameMap = builder.packageNameMap;
@@ -465,6 +471,13 @@ public class TbLoaderPanel extends JPanel {
         }
 
         outerGreetingBox.add(greetingBox, BorderLayout.WEST);
+
+        if (builder.updateTb2FirmwareListener != null) {
+            JButton update = new JButton("Upd");
+            greetingBox.add(Box.createHorizontalGlue());
+            greetingBox.add(update);
+            update.addActionListener(e->builder.updateTb2FirmwareListener.get());
+        }
 
         ImageIcon gearImageIcon = new ImageIcon(
             UIConstants.getResource(UIConstants.ICON_GEAR_32_PX));
