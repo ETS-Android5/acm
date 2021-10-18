@@ -214,7 +214,7 @@ public class TBBuilder {
         builderContext.deploymentName = deploymentName;
 
         PathsProvider pathsProvider = ACMConfiguration.getInstance().getPathProvider(sharedACM);
-        // Like ~/Dropbox/ACM-UWR/TB-Loaders
+        // Like ~/Dropbox/ACM-UWR/TB-Loaders or ~/Amplio/acm-dbs/UWR/TB-Loaders
         builderContext.sourceTbLoadersDir = pathsProvider.getProgramTbLoadersDir();
         builderContext.sourceTbOptionsDir = new File(builderContext.sourceTbLoadersDir, "TB_Options");
         builderContext.sourceProgramspecDir = pathsProvider.getProgramSpecDir();

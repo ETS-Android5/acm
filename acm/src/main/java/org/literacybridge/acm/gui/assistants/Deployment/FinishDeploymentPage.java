@@ -336,6 +336,25 @@ public class FinishDeploymentPage extends AcmAssistantPage<DeploymentContext> {
      * Builds the lists of content, and the list of lists. Returns a map
      * of language to package name. Will extract any content prompts to a
      * packages/${package}/prompts directory.
+     *
+     * Every recipient may (or may not) be tagged with a single variant.
+     * Every message may (or may not) be tagged with one or more variants.
+     *
+     * Recipients receive all un-tagged (non-variant) messages, plus any messages tagged with that recipient's variant.
+     *
+     * For every language,
+     *   find the variants that need to be built, based on the recipients for that langauge.
+     *   For every language-variant combination
+     *     create packageDir = ${acmDir}/TB-Loaders/packages/${deployment}-${deploymentNumber}-${languagecode}-${variant}
+     *     create listsDir = ${packageDir}/messages/lists/1
+     *     create promptsDir = ${packageDir}/prompts/${languagecode}/cat
+     *     create an _activeLists.txt file
+     *     For every playlists in that language-variant
+     *       find the content
+     *       create a ${category}.txt file listing the content files
+     *       possibly create a ${promptsDir}/${category}.ids file with the message ids of the short and long prompts.
+     *
+     *
      * @return {language : {variant: pkgName}}
      */
     private Map<String, Map<String, String>> exportPackages() {
