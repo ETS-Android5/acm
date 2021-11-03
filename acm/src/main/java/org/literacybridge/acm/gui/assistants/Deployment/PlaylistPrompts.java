@@ -63,6 +63,17 @@ public class PlaylistPrompts {
         this.languagecode = languagecode;
     }
 
+    public PlaylistPrompts(String title, String languagecode, String categoryId, File shortPromptFile, AudioItem shortPromptItem,
+        File longPromptFile, AudioItem longPromptItem) {
+        this.title = title;
+        this.languagecode = languagecode;
+        this.categoryId = categoryId;
+        this.shortPromptFile = shortPromptFile;
+        this.shortPromptItem = shortPromptItem;
+        this.longPromptFile = longPromptFile;
+        this.longPromptItem = longPromptItem;
+    }
+
     public void findPrompts() {
         findPromptsInLanguageFiles();
         findPromptsInAcmContent();
@@ -73,6 +84,9 @@ public class PlaylistPrompts {
     }
     public String getLanguagecode() {
         return languagecode;
+    }
+    public String getCategoryId() {
+        return categoryId;
     }
 
     public AudioItem getShortItem() {
@@ -93,6 +107,7 @@ public class PlaylistPrompts {
     public boolean hasLongPrompt() {
         return longPromptFile != null || longPromptItem != null;
     }
+
     boolean hasBothPrompts() {
         return hasShortPrompt() && hasLongPrompt();
     }
