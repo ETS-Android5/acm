@@ -17,11 +17,19 @@ import org.literacybridge.acm.cloud.AuthenticationDialog.WelcomeDialog;
 import org.literacybridge.acm.cloud.cognito.AuthenticationHelper;
 import org.literacybridge.acm.cloud.cognito.CognitoHelper;
 import org.literacybridge.acm.cloud.cognito.CognitoJWTParser;
+import org.literacybridge.acm.config.ACMConfiguration;
 import org.literacybridge.acm.config.AccessControl;
 import org.literacybridge.acm.config.AmplioHome;
 import org.literacybridge.acm.config.HttpUtility;
 import org.literacybridge.acm.gui.Application;
+import org.literacybridge.acm.gui.dialogs.PopUp;
 
+import javax.swing.JEditorPane;
+import javax.swing.JOptionPane;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
+import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.Window;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -30,8 +38,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -326,6 +336,43 @@ public class Authenticator {
     }
 
     /**
+     * Prompts the user to upgrade to the setup program, if they haven't already. As some yet-to-be-defined
+     * cutoff date approaches, can warn more vigorously.
+     */
+    private void checkForSetupWarning() {
+        if (AmplioHome.isOldStyleSetup() || ACMConfiguration.getInstance().alwaysWarnForUpdate()) {
+            Date latestWarning = ACMConfiguration.getInstance().getLatestUpdateSetupWarningDate();
+            Date graceTime = new Date(System.currentTimeMillis() - (2 * 24 * 60 * 60 * 1000));  // 2 days
+            JEditorPane edPane = new JEditorPane();
+            edPane.setEditable(false);
+            edPane.setEditorKit(JEditorPane.createEditorKitForContentType("text/html"));
+            edPane.setText("<html>The ACM and TB-Loader have a new setup program," +
+                "which is required to enable new capabilities.<br/><br/>" +
+                "Please visit <a href=\"https://downloads.amplio.org/software/index.html\">this site</a> to install.");
+            edPane.addHyperlinkListener(e -> {
+                if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                    if (Desktop.isDesktopSupported()) {
+                        try {
+                            Desktop.getDesktop().browse(e.getURL().toURI());
+                        } catch (IOException | URISyntaxException ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }
+            });
+            if (latestWarning.before(graceTime) || ACMConfiguration.getInstance().alwaysWarnForUpdate()) {
+                new PopUp.Builder()
+                    .withMessageType(JOptionPane.WARNING_MESSAGE)
+                    .withTitle("New Setup Required")
+                    .withContents(edPane)
+                    .withSize(new Dimension(400, 250))
+                    .go();
+                ACMConfiguration.getInstance().setLatestUpdateSetupWarningDate();
+            }
+        }
+    }
+
+    /**
      * Determine who the user is. If we can access an authentication server, the user must
      * authenticate. (We need the user to be authenticated in order to check for new content,
      * or to download any new content found.) If we can not, we simply ask for their email
@@ -340,6 +387,9 @@ public class Authenticator {
         if (!LoginOptions.allCompatible(loginFlags)) {
             throw new IllegalArgumentException("Incompatible options specified: " + LoginOptions.getIncompatibles(loginFlags));
         }
+
+        checkForSetupWarning();
+
         loginOptions = new HashSet<>(Arrays.asList(loginFlags));
         if (loginOptions.contains(LoginOptions.SUGGEST_DEMO_MODE)) {
             loginOptions.add(LoginOptions.OFFER_DEMO_MODE);

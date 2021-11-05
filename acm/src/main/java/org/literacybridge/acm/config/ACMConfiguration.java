@@ -13,6 +13,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -396,6 +397,31 @@ public class ACMConfiguration {
         }
         return Constants.TB_SRN_ALLOCATION_SIZE_DEFAULT;
     }
+
+    public Date getLatestUpdateSetupWarningDate() {
+        String value = getUserConfigurationItem(Constants.LATEST_UPDATE_SETUP_WARNING, null);
+        try {
+            return new Date(Long.parseLong(value));
+        } catch (Exception ignored)  {
+            return new Date(0);
+        }
+    }
+    public void setLatestUpdateSetupWarningDate() {
+        UsersConfigurationProperties.setProperty(Constants.LATEST_UPDATE_SETUP_WARNING,
+            Long.toString(System.currentTimeMillis()));
+        writeUserProps();
+    }
+
+    public boolean alwaysWarnForUpdate() {
+        String value = getUserConfigurationItem(Constants.ALWAYS_WARN_SETUP, "false");
+        try {
+            return Boolean.parseBoolean(value);
+        } catch (Exception ignored) {
+            // ignore
+        }
+        return false;
+    }
+
 
     public String getUserConfigurationItem(String name, String defaultValue) {
         String value = UsersConfigurationProperties.getProperty(name);

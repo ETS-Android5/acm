@@ -46,6 +46,8 @@ public class Constants {
   // So that test machines can be configured to do frequent allocations.
   public final static String TB_SRN_ALLOCATION_SIZE = "TB_SRN_ALLOCATION_SIZE";
   public final static Integer TB_SRN_ALLOCATION_SIZE_DEFAULT = 512;
+  public final static String LATEST_UPDATE_SETUP_WARNING = "LATEST_UPDATE_SETUP_WARNING";
+  public final static String ALWAYS_WARN_SETUP = "ALWAYS_WARN_SETUP";
   public final static String BATCH_RECORD = "record.log";
   public final static String S3_BUCKET = "acm-logging";
   public final static String FUZZY_THRESHOLD = "FUZZY_THRESHOLD";
