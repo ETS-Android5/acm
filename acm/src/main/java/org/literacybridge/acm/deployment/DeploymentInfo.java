@@ -1,4 +1,4 @@
-package org.literacybridge.acm.tbbuilder;
+package org.literacybridge.acm.deployment;
 
 import org.apache.commons.lang3.StringUtils;
 import org.literacybridge.acm.Constants;
@@ -8,6 +8,8 @@ import org.literacybridge.acm.store.AudioItem;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 public class DeploymentInfo {
     private final String programid;
     private final int deploymentNumber;
+    private String name;
     private boolean ufHidden;
     private boolean hasTutorial;
 
@@ -32,6 +35,12 @@ public class DeploymentInfo {
     public DeploymentInfo(String programid, int deploymentNumber) {
         this.programid = programid;
         this.deploymentNumber = deploymentNumber;
+        Calendar today = new Calendar.Builder().setInstant(System.currentTimeMillis()).build();
+        name = String.format("%s-%d-%d", programid, today.get(Calendar.YEAR) - 2000, deploymentNumber);
+    }
+
+    public String getName() {
+        return name;
     }
 
     public boolean isUfHidden() { return ufHidden; }
@@ -42,9 +51,8 @@ public class DeploymentInfo {
     }
 
     public boolean hasTutorial() { return hasTutorial; }
-    public DeploymentInfo setTutorial(boolean hasTutorial) {
+    public void setTutorial(boolean hasTutorial) {
         this.hasTutorial = hasTutorial;
-        return this;
     }
 
     public PackageInfo addPackage(String languageCode, String variant) {
@@ -57,14 +65,13 @@ public class DeploymentInfo {
      * Removes empty packages. An empty package is one which has no playlists, or only
      * empty playlists. An empty playlist is non-feedback one with no messages.
      */
-    public DeploymentInfo prune() {
+    public void prune() {
         List<PackageInfo> pruned = packages.stream()
             .map(PackageInfo::prune)
             .filter(PackageInfo::isNotEmpty)
             .collect(Collectors.toList());
         packages.clear();
         packages.addAll(pruned);
-        return this;
     }
 
     @Override
@@ -76,16 +83,22 @@ public class DeploymentInfo {
         return packages;
     }
 
-    public class PackageInfo {
-        final String languageCode;
-        final String variant;
-        final String name;
-        final String shortName;
-        private AudioItem introMessage;
-        private boolean hasUserFeedbackPlaylist;
-        private boolean hasTutorial;
+    public String getProgramId() {
+        return programid;
+    }
 
-        final List<PlaylistInfo> playlists = new ArrayList<>();
+    public int getDeploymentNumber() {
+        return deploymentNumber;
+    }
+
+    public class PackageInfo {
+        private final String languageCode;
+        private final String variant;
+        private final String name;
+        private final String shortName;
+        private AudioItem introMessage;
+
+        private final List<PlaylistInfo> playlists = new ArrayList<>();
 
         private PackageInfo(String languageCode, String variant) {
             this.languageCode = languageCode;
@@ -94,38 +107,24 @@ public class DeploymentInfo {
             this.shortName = makeName(true);
         }
 
-        public PackageInfo withIntro(AudioItem introMessage) {
+        public void setIntroItem(AudioItem introMessage) {
             this.introMessage = introMessage;
-            return this;
         }
         public boolean hasIntro() { return introMessage != null; }
 
-        public PlaylistInfo addPlaylist(PlaylistInfo.Builder builder) {
-            PlaylistInfo playlistInfo = builder.build(this);
+        public PlaylistInfo addPlaylist(PlaylistBuilder playlistBuilder) {
+            PlaylistInfo playlistInfo = playlistBuilder.build();
             playlists.add(playlistInfo);
-            if (builder.isUserFeedback) {
-                this.setUserFeedbackPlaylist();
-            }
             return playlistInfo;
         }
 
-        public boolean isHasUserFeedbackPlaylist() {
-            return hasUserFeedbackPlaylist;
+        public boolean hasUserFeedbackPlaylist() {
+            return playlists.stream().anyMatch(pl->pl.isUserFeedback);
         }
-        public PackageInfo setUserFeedbackPlaylist() {
-            this.hasUserFeedbackPlaylist = true;
-            return this;
-        }
-        public boolean isHasTutorial() {
+        public boolean hasTutorial() {
+            // Note that this is inherited from the Deployment. To enable per-package tutorials, add
+            // a "hasTutorial" to the PackageInfo.
             return hasTutorial;
-        }
-        public PackageInfo setTutorial() {
-            this.hasTutorial = true;
-            return this;
-        }
-
-        public int size() {
-            return playlists.size() + (hasTutorial?1:0) + (hasUserFeedbackPlaylist?1:0);
         }
 
         public PackageInfo prune() {
@@ -139,7 +138,7 @@ public class DeploymentInfo {
         }
 
         public boolean isNotEmpty() {
-            return playlists.size() > 0 || hasTutorial || hasUserFeedbackPlaylist;
+            return playlists.size() > 0 || hasTutorial;
         }
 
         @Override
@@ -159,8 +158,24 @@ public class DeploymentInfo {
             return shortName;
         }
 
-        public Iterable<? extends PlaylistInfo> getPlaylists() {
+        public Collection<PlaylistInfo> getPlaylists() {
             return playlists;
+        }
+
+        public AudioItem getIntro() {
+            return introMessage;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public AudioItem getIntroMessage() {
+            return introMessage;
+        }
+
+        public boolean isUfHidden() {
+            return DeploymentInfo.this.isUfHidden();
         }
 
         /**
@@ -205,10 +220,7 @@ public class DeploymentInfo {
             }
             return packageName;
         }
-    }
-
-    public static class PlaylistInfo {
-        public static class Builder {
+        public class PlaylistBuilder {
             private String title;
             private PromptInfo announcement;
             private PromptInfo invitation;
@@ -216,117 +228,104 @@ public class DeploymentInfo {
             private boolean isUserFeedback;
             private boolean isLocked;
 
-            public Builder withTitle(String title) {
+            public PlaylistBuilder withTitle(String title) {
                 this.title=title;
                 return this;
             }
-            public Builder withPrompts(PlaylistPrompts prompts) {
-                this.announcement = prompts.getShortItem()!=null ?
-                                    new PromptInfo(prompts.getShortItem()) :
-                                    new PromptInfo(prompts.getShortFile());
-                this.invitation = prompts.getLongItem()!=null ?
-                                    new PromptInfo(prompts.getLongItem()) :
-                                    new PromptInfo(prompts.getLongFile());
+            public PlaylistBuilder withPrompts(PlaylistPrompts prompts) {
+                this.announcement = new PromptInfo(prompts.getShortItem(), prompts.getShortFile());
+                this.invitation = new PromptInfo(prompts.getLongItem(), prompts.getLongFile());
                 this.categoryId = prompts.getCategoryId();
                 return this;
             }
-            public Builder withAnnouncement(AudioItem announcement) {
-                this.announcement = new PromptInfo(announcement);
-                return this;
-            }
-            public Builder withAnnouncement(File announcement) {
-                this.announcement = new PromptInfo(announcement);
-                return this;
-            }
-            public Builder withInvitation(AudioItem invitation) {
-                this.invitation = new PromptInfo(invitation);
-                return this;
-            }
-            public Builder withInvitation(File invitation) {
-                this.invitation = new PromptInfo(invitation);
-                return this;
-            }
-            public Builder isUserFeedback(boolean isUserFeedback) {
+            public PlaylistBuilder isUserFeedback(boolean isUserFeedback) {
                 this.isUserFeedback = isUserFeedback;
                 return this;
             }
-            public Builder isLocked(boolean isLocked) {
+            public PlaylistBuilder isLocked(boolean isLocked) {
                 this.isLocked = isLocked;
                 return this;
             }
 
-            private PlaylistInfo build(PackageInfo packageInfo) {
-                return new PlaylistInfo(packageInfo,this);
+            private PlaylistInfo build() {
+                return new PlaylistInfo(this);
+            }
+        }
+        public class PlaylistInfo {
+
+            private final String title;
+            private final String categoryId;
+            private final PromptInfo announcement;
+            private final PromptInfo invitation;
+            private final boolean isUserFeedback;
+            private final boolean isLocked;
+            private final List<String> content = new ArrayList<>();
+
+            private PlaylistInfo(PlaylistBuilder playlistBuilder) {
+                this.title = playlistBuilder.title;
+                this.categoryId = playlistBuilder.categoryId;
+                this.announcement = playlistBuilder.announcement;
+                this.invitation = playlistBuilder.invitation;
+                this.isUserFeedback = playlistBuilder.isUserFeedback;
+                this.isLocked = playlistBuilder.isLocked;
+            }
+
+            public void addContent(AudioItem audioItem) {
+                content.add(audioItem.getId());
+            }
+
+            /**
+             * The content member either has audio items or it doesn't.
+             * @return this
+             */
+            public PlaylistInfo prune() {
+                return this;
+            }
+
+            public boolean isNotEmpty() {
+                return content.size() > 0 || isUserFeedback;
+            }
+
+            public String getTitle() {
+                return title;
+            }
+
+            public boolean isUserFeedback() {
+                return isUserFeedback;
+            }
+
+            public PlaylistPrompts getPlaylistPrompts() {
+                return new PlaylistPrompts(title, languageCode, categoryId,
+                    announcement.audioFile, announcement.audioItem, invitation.audioFile, invitation.audioItem);
+            }
+
+            public Iterable<? extends String> getAudioItemIds() {
+                return content;
+            }
+
+            @Override
+            public String toString() {
+                return title;
+            }
+
+            public String getCategoryId() {
+                return categoryId;
             }
         }
 
-        private final PackageInfo packageInfo;
-        private final String title;
-        private final String categoryId;
-        private final PromptInfo announcement;
-        private final PromptInfo invitation;
-        private final boolean isUserFeedback;
-        private final boolean isLocked;
-        private final List<String> content = new ArrayList<>();
-
-        private PlaylistInfo(PackageInfo packageInfo, Builder builder) {
-            this.packageInfo = packageInfo;
-            this.title = builder.title;
-            this.categoryId = builder.categoryId;
-            this.announcement = builder.announcement;
-            this.invitation = builder.invitation;
-            this.isUserFeedback = builder.isUserFeedback;
-            this.isLocked = builder.isLocked;
-        }
-
-        public void addContent(AudioItem audioItem) {
-            content.add(audioItem.getId());
-        }
-
-        /**
-         * The content member either has audio items or it doesn't.
-         * @return this
-         */
-        public PlaylistInfo prune() {
-            return this;
-        }
-
-        public boolean isNotEmpty() {
-            return content.size() > 0 || isUserFeedback;
-        }
-        
-        public String getTitle() {
-            return title;
-        }
-
-        public PlaylistPrompts getPlaylistPrompts() {
-            return new PlaylistPrompts(title, packageInfo.languageCode, categoryId,
-                announcement.audioFile, announcement.audioItem, invitation.audioFile, invitation.audioItem);
-        }
-
-        public Iterable<? extends String> getAudioItemIds() {
-            return content;
-        }
-
-        @Override
-        public String toString() {
-            return title;
-        }
     }
 
     public static class PromptInfo {
-        // Must be one and only one of these.
+        // Must be either AudioItem or File, but only one.
         public final AudioItem audioItem;
         public final File audioFile;
 
-        public PromptInfo(AudioItem audioItem) {
+        public PromptInfo(AudioItem audioItem, File file) {
+            if ((audioItem==null) == (file==null)) {
+                throw new IllegalArgumentException("Exactly one of AudioItem or File must be passed.");
+            }
             this.audioItem = audioItem;
-            this.audioFile = null;
-        }
-
-        public PromptInfo(File audioFile) {
-            this.audioItem = null;
-            this.audioFile = audioFile;
+            this.audioFile = audioItem == null ? file : null;
         }
     }
 }

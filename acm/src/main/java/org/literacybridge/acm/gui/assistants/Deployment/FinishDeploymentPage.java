@@ -15,7 +15,7 @@ import org.literacybridge.acm.gui.assistants.util.AcmContent.PlaylistNode;
 import org.literacybridge.acm.gui.util.UIUtils;
 import org.literacybridge.acm.repository.AudioItemRepository;
 import org.literacybridge.acm.store.AudioItem;
-import org.literacybridge.acm.tbbuilder.DeploymentInfo;
+import org.literacybridge.acm.deployment.DeploymentInfo;
 import org.literacybridge.acm.tbbuilder.TBBuilder;
 import org.literacybridge.acm.utils.EmailHelper;
 import org.literacybridge.acm.utils.EmailHelper.TD;
@@ -57,6 +57,7 @@ import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -276,6 +277,8 @@ public class FinishDeploymentPage extends AcmAssistantPage<DeploymentContext> {
             }));
             tbBuilder.createDeployment(args);
             saveDeploymentInfoToProgramSpec(tbBuilder, pkgs);
+
+            tbBuilder.createDeployment(context.deploymentInfo);
 
             // Publish.
             if (context.isPublish()) {
@@ -537,26 +540,28 @@ public class FinishDeploymentPage extends AcmAssistantPage<DeploymentContext> {
                         // If any audio items remain after filtering, create the {playlist}.txt file.
                         if (filteredNode.getAudioItemNodes().size() > 0) {
                             String promptCat = getPromptCategory(prompts, languagecode);
-                            boolean isUserFeedback = promptCat.equals(Constants.CATEGORY_UNCATEGORIZED_FEEDBACK);
+                            // If this is an intro message, simply note that on the packageInfo. It doesn't get
+                            // an entry in the _activeLists, nor a categoryid.txt file.
+                            if (promptCat.equals(Constants.CATEGORY_INTRO_MESSAGE)) {
+                                packageInfo.setIntroItem(filteredNode.getAudioItemNodes().get(0).getAudioItem());
+                            } else {
+                                // Is this a pre-populated 9-0, Uncategorized User Feeedback, playlist?
+                                // That's weird, but legal.
+                                boolean isUserFeedback = promptCat.equals(Constants.CATEGORY_UNCATEGORIZED_FEEDBACK);
 
-                            DeploymentInfo.PlaylistInfo.Builder plBuilder = new DeploymentInfo.PlaylistInfo.Builder()
-                                .withTitle(plTitle)
-                                .withPrompts(prompts)
-                                .isLocked(true)
-                                .isUserFeedback(isUserFeedback);
-                            DeploymentInfo.PlaylistInfo playlistInfo = packageInfo.addPlaylist(plBuilder);
-                            for (AudioItemNode audioItemNode : filteredNode.getAudioItemNodes()) {
-                                AudioItem audioItem = audioItemNode.getAudioItem();
-                                playlistInfo.addContent(audioItem);
+                                DeploymentInfo.PackageInfo.PlaylistBuilder plPlaylistBuilder = packageInfo.new PlaylistBuilder()
+                                    .withTitle(plTitle)
+                                    .withPrompts(prompts)
+                                    .isLocked(!isUserFeedback)
+                                    .isUserFeedback(isUserFeedback);
+                                DeploymentInfo.PackageInfo.PlaylistInfo playlistInfo = packageInfo.addPlaylist(
+                                    plPlaylistBuilder);
+                                for (AudioItemNode audioItemNode : filteredNode.getAudioItemNodes()) {
+                                    AudioItem audioItem = audioItemNode.getAudioItem();
+                                    playlistInfo.addContent(audioItem);
+                                }
                             }
                         }
-                    }
-
-                    if (context.includeUfCategory) {
-                        packageInfo.setUserFeedbackPlaylist();
-                    }
-                    if (context.includeTbTutorial) {
-                        packageInfo.setTutorial();
                     }
                 } catch (IllegalStateException e) {
                     errors.add(new DeploymentException(String.format("Error exporting playlist '%s'",
@@ -599,7 +604,7 @@ public class FinishDeploymentPage extends AcmAssistantPage<DeploymentContext> {
             String title = null;
             int promptIx = -1;
             try (PrintWriter activeListsWriter = new PrintWriter(activeLists)) {
-                for (DeploymentInfo.PlaylistInfo playlistInfo : packageInfo.getPlaylists()) {
+                for (DeploymentInfo.PackageInfo.PlaylistInfo playlistInfo : packageInfo.getPlaylists()) {
                     title = playlistInfo.getTitle();
                     PlaylistPrompts prompts = playlistInfo.getPlaylistPrompts();
                     promptIx += 1;
@@ -613,15 +618,18 @@ public class FinishDeploymentPage extends AcmAssistantPage<DeploymentContext> {
                         activeListsWriter.println("!" + promptCat);
                     }
                     createListFile(playlistInfo.getAudioItemIds(), promptCat, listsDir);
-                    boolean isUserFeedback = promptCat.equals(Constants.CATEGORY_UNCATEGORIZED_FEEDBACK);
-                    haveUserFeedbackListFile |= isUserFeedback;
+                    haveUserFeedbackListFile |= promptCat.equals(Constants.CATEGORY_UNCATEGORIZED_FEEDBACK);
 
                 }
+                // If the package has an intro, create a dummy 5-0.txt file.
+                if (packageInfo.hasIntro()) {
+                    createListFile(new ArrayList<>(Collections.singleton(packageInfo.getIntro().getId())), Constants.CATEGORY_INTRO_MESSAGE, listsDir);
+                }
 
-                if (packageInfo.isHasUserFeedbackPlaylist()) {
+                if (packageInfo.hasUserFeedbackPlaylist()) {
                     activeListsWriter.println(Constants.CATEGORY_UNCATEGORIZED_FEEDBACK);
                 }
-                if (packageInfo.isHasTutorial()) {
+                if (packageInfo.hasTutorial()) {
                     activeListsWriter.println('!' + Constants.CATEGORY_TUTORIAL);
                 }
                 if (!haveUserFeedbackListFile) {

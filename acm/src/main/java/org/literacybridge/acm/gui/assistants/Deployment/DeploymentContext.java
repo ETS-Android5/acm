@@ -4,7 +4,7 @@ import org.literacybridge.acm.config.ACMConfiguration;
 import org.literacybridge.acm.gui.assistants.common.AssistantContext;
 import org.literacybridge.acm.gui.assistants.util.AcmContent;
 import org.literacybridge.acm.store.Playlist;
-import org.literacybridge.acm.tbbuilder.DeploymentInfo;
+import org.literacybridge.acm.deployment.DeploymentInfo;
 import org.literacybridge.core.spec.ContentSpec;
 
 import java.util.HashMap;

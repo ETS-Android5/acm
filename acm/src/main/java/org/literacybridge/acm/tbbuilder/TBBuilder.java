@@ -6,6 +6,7 @@ import org.literacybridge.acm.Constants;
 import org.literacybridge.acm.config.ACMConfiguration;
 import org.literacybridge.acm.config.AmplioHome;
 import org.literacybridge.acm.config.PathsProvider;
+import org.literacybridge.acm.deployment.DeploymentInfo;
 import org.literacybridge.acm.gui.CommandLineParams;
 import org.literacybridge.acm.repository.AudioItemRepository;
 import org.literacybridge.acm.utils.LogHelper;
@@ -302,6 +303,49 @@ public class TBBuilder {
     public void createDeployment(List<String> args) throws Exception {
         List<PackageInfo> packages = getPackageInfoForCreate(args);
         new Create(this, builderContext).createDeploymentWithPackages(packages);
+    }
+
+    public void createDeployment(DeploymentInfo deploymentInfo) throws Exception {
+        BuilderContext bc = new BuilderContext();
+
+        bc. isAssistantLaunched = builderContext.isAssistantLaunched;
+        bc.project = builderContext.project;
+        bc.deploymentName = builderContext.deploymentName;
+        bc.revision = builderContext.revision;
+
+        bc.deploymentNo = builderContext.deploymentNo;
+        bc.sourceProgramspecDir = builderContext.sourceProgramspecDir;
+        bc.programSpec = builderContext.programSpec;
+
+        bc.sourceTbLoadersDir = builderContext.sourceTbLoadersDir;
+        bc.sourceTbOptionsDir = builderContext.sourceTbOptionsDir;
+
+        File localTbLoadersDir = new File(
+            ACMConfiguration.getInstance().getApplicationHomeDirectory(),
+            Constants.TBLoadersHomeDir);
+        bc.stagingDir = new File(localTbLoadersDir, "v1-"+builderContext.project);
+        // Like ~/LiteracyBridge/TB-Loaders/TEST/content/TEST-20-2
+        bc.stagedDeploymentDir = new File(bc.stagingDir, "content" + File.separator + bc.deploymentName);
+        // Like ~/LiteracyBridge/TB-Loaders/TEST/content/TEST-20-2/programspec
+        bc.stagedProgramspecDir = new File(bc.stagedDeploymentDir, Constants.ProgramSpecDir);
+
+        bc.deDuplicateAudio = builderContext.deDuplicateAudio;
+
+        bc.fatalMessages = new ArrayList<>();
+        bc.errorMessages = new ArrayList<>();
+        bc.warningMessages = new ArrayList<>();
+        bc.errorCommunities = new HashSet<>();
+        bc.errorLanguages = new HashSet<>();
+
+        bc.contentInPackageCSVWriter = null;
+        bc.categoriesInPackageCSVWriter = null;
+        bc.packagesInDeploymentCSVWriter = null;
+
+        bc.exceptionLogger = builderContext.exceptionLogger;
+        bc.statusWriter = builderContext.statusWriter;
+
+        CreateForV1 cfv1 = new CreateForV1(this,  bc,  deploymentInfo);
+        cfv1.go();
     }
 
     private static void printUsage() {
